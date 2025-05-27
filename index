@@ -3,53 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>商業管理矛盾矩陣</title>
+    <title>創新問題解決工具 (整合Gemini API)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* 自訂捲軸樣式 (可選) */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .tab-button.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
+        .step-section {
+            display: none;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
+        .step-section.active {
+            display: block;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        .dynamic-list-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
         }
-        .select-wrapper {
+        .dynamic-list-item input[type="text"] {
+            flex-grow: 1;
+            margin-right: 0.5rem;
+        }
+        .remove-btn {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background-color: #dc2626;
+        }
+        .ideas-landscape-plot {
+            width: 100%;
+            max-width: 500px;
+            height: 400px;
+            border: 1px solid #ccc;
             position: relative;
+            margin: 20px auto;
+            background-color: #f9fafb;
         }
-        .select-wrapper::after {
-            content: '▼';
-            font-size: 0.8rem;
+        .plot-point {
             position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
+            width: 10px;
+            height: 10px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            text-align: center;
+            line-height: 10px;
+            color: white;
+            cursor: pointer;
+        }
+        .plot-point .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .plot-point:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .plot-axis {
+            position: absolute;
+            background-color: #9ca3af;
+        }
+        .x-axis {
+            bottom: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+        }
+        .y-axis {
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+        }
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
             color: #6b7280;
         }
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
+        .x-axis-label {
+            bottom: calc(50% - 20px);
+            left: 50%;
+            transform: translateX(-50%);
         }
-        .loader {
-            border: 4px solid #f3f3f3; /* 淺灰色 */
-            border-top: 4px solid #3498db; /* 藍色 */
+        .y-axis-label {
+            top: 50%;
+            left: calc(50% - 30px);
+            transform: translateY(-50%) rotate(-90deg);
+        }
+         .quadrant-label {
+            position: absolute;
+            font-size: 11px;
+            color: #a0aec0;
+            padding: 5px;
+        }
+        .lean-canvas-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr); 
+            gap: 1rem;
+        }
+        @media (min-width: 768px) { 
+            .lean-canvas-grid {
+                grid-template-columns: repeat(3, 1fr); 
+            }
+            .lc-problem { grid-column: span 1 / span 1; }
+            .lc-solution { grid-column: span 1 / span 1; }
+            .lc-key-metrics { grid-column: span 1 / span 1; }
+            .lc-uvp { grid-column: span 3 / span 3;  }
+            .lc-unfair-advantage { grid-column: span 1 / span 1; }
+            .lc-channels { grid-column: span 1 / span 1; }
+            .lc-customer-segments { grid-column: span 1 / span 1; }
+            .lc-cost-structure { grid-column: span 1 / span 1; grid-row: 4 / span 1; }
+            .lc-revenue-streams { grid-column: span 2 / span 2; grid-row: 4 / span 1; }
+        }
+         @media (min-width: 1024px) { 
+            .lean-canvas-grid {
+                grid-template-columns: repeat(5, 1fr);
+                grid-template-rows: auto auto auto; 
+            }
+            .lc-problem { grid-column: 1 / span 1; grid-row: 1 / span 1; }
+            .lc-solution { grid-column: 2 / span 1; grid-row: 1 / span 1; }
+            .lc-key-metrics { grid-column: 4 / span 1; grid-row: 1 / span 1; }
+            .lc-uvp { grid-column: 3 / span 1; grid-row: 1 / span 2;  }
+            .lc-unfair-advantage { grid-column: 1 / span 1; grid-row: 2 / span 1; }
+            .lc-channels { grid-column: 2 / span 1; grid-row: 2 / span 1; }
+            .lc-customer-segments { grid-column: 5 / span 1; grid-row: 1 / span 2;  }
+            .lc-cost-structure { grid-column: 1 / span 2; grid-row: 3 / span 1; } 
+            .lc-revenue-streams { grid-column: 3 / span 3; grid-row: 3 / span 1; } 
+        }
+
+        .lean-canvas-cell {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #f9fafb;
+            min-height: 150px; 
+            display: flex;
+            flex-direction: column;
+        }
+        .lean-canvas-cell label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .lean-canvas-cell textarea {
+            width: 100%;
+            flex-grow: 1;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            resize: vertical; 
+        }
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 600px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .modal-close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .modal-close-btn:hover,
+        .modal-close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .ai-suggestion-container {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #eef2ff; /* Light indigo background */
+            border: 1px solid #c7d2fe; /* Indigo border */
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: #4338ca; /* Indigo text */
+        }
+        .loading-spinner {
+            border: 2px solid #f3f3f3; /* Light grey */
+            border-top: 2px solid #3498db; /* Blue */
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 16px;
+            height: 16px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            display: inline-block;
+            margin-left: 8px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -57,164 +240,431 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-sky-500 selection:text-white">
-
-    <div class="bg-slate-800 shadow-2xl rounded-xl p-6 md:p-10 w-full max-w-3xl transform transition-all duration-500 hover:scale-[1.01]">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-sky-400">商業管理矛盾矩陣</h1>
-            <p class="text-slate-400 mt-2">查詢工具</p>
-        </header>
-
-        <div class="space-y-6">
-            <div>
-                <label for="improvingParameter" class="block text-sm font-medium text-sky-300 mb-1">改善參數 (想改善的特性):</label>
-                <div class="select-wrapper">
-                    <select id="improvingParameter" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
-                        </select>
-                </div>
-            </div>
-
-            <div>
-                <label for="deterioratingParameter" class="block text-sm font-medium text-sky-300 mb-1">惡化參數 (會因此變差的特性):</label>
-                <div class="select-wrapper">
-                    <select id="deterioratingParameter" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors">
-                        </select>
-                </div>
-            </div>
-
-            <button id="findPrinciples" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-opacity-75 shadow-lg flex items-center justify-center">
-                <span id="buttonText">查詢發明原理</span>
-                <div id="buttonLoader" class="loader hidden ml-2"></div>
-            </button>
+<body class="bg-gray-100 p-4 md:p-8">
+    <div class="container mx-auto bg-white p-6 rounded-lg shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-blue-600">創新問題解決工具</h1>
+            <button id="manageProgressBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">管理進度</button>
         </div>
 
-        <div id="resultsContainer" class="mt-8 p-6 bg-slate-700 rounded-lg shadow min-h-[80px] flex items-center justify-center">
-            <p id="resultsText" class="text-slate-300 text-center">請選擇參數並點擊查詢。</p>
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex flex-wrap space-x-1 sm:space-x-4" aria-label="Tabs">
+                <button data-tab="step1" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">1. 問題與RCA</button>
+                <button data-tab="step2" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">2. 衝突分析</button>
+                <button data-tab="step3" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">3. TRIZ方案生成</button>
+                <button data-tab="step4" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">4. 方案評估選擇</button>
+                <button data-tab="step5" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">5. 精實畫布</button>
+                <button data-tab="step6" class="tab-button py-3 px-2 sm:px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 text-xs sm:text-base">6. 最終報告</button>
+            </nav>
         </div>
-        
-        <footer class="mt-8 text-center">
-            <p class="text-xs text-slate-500">資料來源: David W. Conley, 2009. 註: 1. 選最匹配的參數。2. 此表原理無順序性。</p>
-            <p class="text-xs text-amber-400 mt-1 font-semibold">重要：此版本數據經過再次檢查與嘗試補全，但由於原始資料為圖像，可能仍存在錯誤或遺漏。請務必與原始資料來源核對數據準確性。</p>
-        </footer>
+
+        <section id="step1" class="step-section active">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 1: 界定關鍵問題與根本原因分析 (RCA)</h2>
+            <div class="mb-6">
+                <label for="keyProblem" class="block text-sm font-medium text-gray-700 mb-1">關鍵問題描述:</label>
+                <textarea id="keyProblem" rows="3" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="請明確界定一個您想解決的關鍵問題..."></textarea>
+                 <button id="aiSuggestRcaBtn" class="mt-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-3 rounded-md shadow-sm text-sm">✨ AI 協助分析潛在根本原因</button>
+                 <div id="aiRcaSuggestions" class="ai-suggestion-container" style="display: none;"></div>
+            </div>
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">根本原因分析 (RCA):</h3>
+                <p class="text-sm text-gray-500 mb-2">不斷追問「是什麼原因造成這個問題？」以及「這個原因又是被什麼造成的？」</p>
+                <div id="rcaCausesContainer">
+                    </div>
+                <button id="addRcaCauseBtn" class="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">新增原因</button>
+            </div>
+        </section>
+
+        <section id="step2" class="step-section">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 2: 衝突分析</h2>
+            <p class="text-sm text-gray-500 mb-3">根據根本原因，找出導致問題的「衝突點」。衝突通常體現為：當試圖改善一個方面（帶來好處）時，會導致另一個方面惡化（帶來壞處）。</p>
+            <div id="conflictAnalysisContainer">
+                </div>
+            <button id="addConflictBtn" class="mt-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">新增衝突點</button>
+        </section>
+
+        <section id="step3" class="step-section">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 3: 利用 TRIZ 方法生成解決方案</h2>
+            <p class="text-sm text-gray-500 mb-3">根據識別出的衝突，運用 TRIZ 的工具來生成潛在的解決方案。</p>
+            <div class="mb-4 p-4 border border-blue-200 bg-blue-50 rounded-md">
+                <h4 class="font-semibold text-blue-700">提示：對應工程參數與查找發明原則</h4>
+                <p class="text-sm text-blue-600">將衝突中的「好處」和「壞處」對應到相應的工程參數。然後，系統將根據這些參數（簡化版對應）建議一些發明原則，協助您發想解決方案。</p>
+            </div>
+            <div id="trizSolutionsContainer">
+                </div>
+            <button id="addTrizSolutionSetBtn" class="mt-2 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">為衝突點生成方案</button>
+        </section>
+
+        <section id="step4" class="step-section">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 4: 評估與選擇解決方案</h2>
+            <div class="mb-8 p-4 border rounded-md shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3">4.1 初步篩選 (ABC Filtering)</h3>
+                <p class="text-sm text-gray-500 mb-2">對所有生成的方案進行初步分級 (A: 值得考慮, B: 有懷疑/保守, C: 無考慮價值)。</p>
+                <div id="abcFilteringContainer"></div>
+            </div>
+            <div class="mb-8 p-4 border rounded-md shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3">4.2 多準則決策評估 (MCDM)</h3>
+                <p class="text-sm text-gray-500 mb-2">對 A 級方案進行更詳細的評估。請先設定評估準則及其權重。</p>
+                <div class="mb-4">
+                    <h4 class="text-lg font-medium text-gray-700 mb-2">設定評估準則:</h4>
+                    <div id="mcdmCriteriaContainer"></div>
+                    <button id="addMcdmCriterionBtn" class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm text-sm">新增準則</button>
+                </div>
+                <div id="mcdmEvaluationContainer">
+                    <h4 class="text-lg font-medium text-gray-700 mb-2">A級方案評分:</h4>
+                </div>
+            </div>
+            <div class="mb-8 p-4 border rounded-md shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3">4.3 創意景觀圖 (Ideas Landscape)</h3>
+                <p class="text-sm text-gray-500 mb-2">將方案的評估結果以圖形方式呈現。橫軸：導入所需時間，縱軸：MCDM總分。</p>
+                <div id="ideasLandscapeInputContainer" class="mb-4"></div>
+                <div id="ideasLandscapePlotContainer" class="ideas-landscape-plot">
+                    <div class="plot-axis x-axis"></div> <div class="plot-axis y-axis"></div>
+                    <div class="axis-label x-axis-label">導入所需時間 (短 → 長)</div>
+                    <div class="axis-label y-axis-label">MCDM 總分 (低 → 高)</div>
+                    <div class="quadrant-label" style="top: 10px; left: 10px;">II. 優先</div> <div class="quadrant-label" style="top: 10px; right: 10px;">I. 長期</div>
+                    <div class="quadrant-label" style="bottom: 10px; left: 10px;">III. 捨棄</div> <div class="quadrant-label" style="bottom: 10px; right: 10px;">IV. 避免</div>
+                </div>
+                 <button id="generateIdeasLandscapeBtn" class="mt-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">產生/更新景觀圖</button>
+            </div>
+            <div class="p-4 border rounded-md shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3">4.4 TRIZ 理想性評估 (可選)</h3>
+                <p class="text-sm text-gray-500 mb-2">對最終選出的 Top Ideas 進行更嚴格的 TRIZ 理想性評估。</p>
+                <div id="trizIdealnessContainer"></div>
+                 <button id="startTrizIdealnessBtn" class="mt-2 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm text-sm">開始理想性評估</button>
+            </div>
+        </section>
+
+        <section id="step5" class="step-section">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 5: 精實畫布 / 商業模式 (Lean Canvas)</h2>
+            <p class="text-sm text-gray-500 mb-1">針對您選定的解決方案，規劃其商業模式。 </p>
+            <p class="text-xs text-blue-500 mb-3">提示：點擊下方按鈕可快速帶入先前步驟的相關資訊。</p>
+            <div class="mb-3">
+                <button id="prefillLeanCanvasProblemBtn" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 py-1 px-2 rounded-md mr-2">從步驟1帶入「問題」</button>
+                <button id="prefillLeanCanvasSolutionBtn" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 py-1 px-2 rounded-md">從最佳A級方案帶入「解決方案」與「獨特價值主張」建議</button>
+            </div>
+            
+            <div id="leanCanvasGridContainer" class="lean-canvas-grid">
+                </div>
+        </section>
+
+        <section id="step6" class="step-section">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">步驟 6: 最終方案與報告呈現</h2>
+            <p class="text-sm text-gray-500 mb-3">綜合所有分析與評估，選定最終方案並檢視完整報告。</p>
+             <button id="aiGenerateReportSummaryBtn" class="mb-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-3 rounded-md shadow-sm text-sm">✨ AI 產生報告摘要</button>
+            <div id="aiReportSummaryContainer" class="ai-suggestion-container mb-4" style="display:none;"></div>
+            <div id="finalReportContainer" class="space-y-6">
+                </div>
+            <button id="generateReportBtn" class="mt-4 bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-md shadow-sm">產生最終報告</button>
+        </section>
+
+        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
+            <button id="prevStepBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-md shadow-sm">上一步</button>
+            <button id="nextStepBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-md shadow-sm">下一步</button>
+        </div>
     </div>
 
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn" id="closeProgressModalBtn">&times;</span>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">管理進度</h2>
+            
+            <div class="mb-6 p-4 border rounded-md">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">儲存目前進度</h3>
+                <label for="progressNameInput" class="block text-sm font-medium text-gray-600 mb-1">進度名稱 (可選):</label>
+                <input type="text" id="progressNameInput" class="w-full p-2 border border-gray-300 rounded-md mb-2" placeholder="例如：我的第一個專案">
+                <button id="saveNewProgressBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm text-sm">儲存為新進度</button>
+            </div>
+
+            <div class="p-4 border rounded-md">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">已儲存的進度</h3>
+                <div id="savedProgressList" class="space-y-2 max-h-60 overflow-y-auto">
+                    <p class="text-sm text-gray-500">尚未儲存任何進度。</p>
+                </div>
+            </div>
+             <div id="globalNotification" class="mt-4 p-3 text-sm rounded-md" style="display: none;"></div>
+        </div>
+    </div>
+
+
     <script>
-        // 31個參數列表 (繁體中文)
-        const parameters = [
-            "活動效用性", "活動可變性", "活動費用", "活動時間", "活動複雜性", // 1-5
-            "活動方便性", "活動安全性", "活動可靠性", "系統有效性", "系統可變性", // 6-10
-            "系統費用", "系統時間", "系統複雜性", "系統方便性", "系統安全性", // 11-15
-            "系統可靠性", "內部風險", "外部風險", "信息共享", "信息損失", // 16-20
-            "信息流", "回饋", "物料流", "對系統的有害影響", "系統產生的有害影響", // 21-25
-            "環境穩定性", "顧客穩定性", "顧客壓力", "組織穩定性", "組織壓力", // 26-30
-            "適應性/多功能性" // 31
-        ];
+        // --- Global State and Data ---
+        let appState = {
+            keyProblem: "",
+            rcaCauses: [], 
+            conflicts: [], 
+            trizSolutions: [], 
+            abcCategories: {}, 
+            mcdmCriteria: [], 
+            mcdmScores: {}, 
+            solutionImplementationTimes: {}, 
+            trizIdealnessScores: {}, 
+            leanCanvas: { 
+                problem: "", solution: "", keyMetrics: "", uniqueValueProposition: "",
+                unfairAdvantage: "", channels: "", customerSegments: "",
+                costStructure: "", revenueStreams: "",
+                selectedSolutionTextForCanvas: "" 
+            },
+            currentStep: 1
+        };
+        
+        const LOCAL_STORAGE_KEY = 'innovationToolSaves_v2_gemini'; 
 
-        // 商業管理矛盾矩陣數據 (31x31)
-        // 資料來源：根據使用者提供的圖像進行轉錄與校對。
-        // 強烈建議使用者比對原始資料來源以確保數據最終準確性。
-        // "X" 表示對角線/無衝突，空字串 "" 表示圖像中空白或數據不明確。
-        const matrixData = [
-            // 惡化參數 (欄 Columns)
-            // 1 活動效用性, 2 活動可變性, 3 活動費用, 4 活動時間, 5 活動複雜性, 6 活動方便性, 7 活動安全性, 8 活動可靠性, 9 系統有效性, 10 系統可變性, 11 系統費用, 12 系統時間, 13 系統複雜性, 14 系統方便性, 15 系統安全性, 16 系統可靠性, 17 內部風險, 18 外部風險, 19 信息共享, 20 信息損失, 21 信息流, 22 回饋, 23 物料流, 24 對系統的有害影響, 25 系統產生的有害影響, 26 環境穩定性, 27 顧客穩定性, 28 顧客壓力, 29 組織穩定性, 30 組織壓力, 31 適應性/多功能性
-            ["X","26,3,40,2","18,35,28,26","39,8,39,36","33,18,17,7","21,12,6,30","38,39,18,3","36,18,21,3","32,11,5,11","12,16,23,2","18,23,15,38","26,25,21,19","39,22,2,33","38,24,3,6,28","16,17,28,8","38,6,4,21","17,29,15,14","11,30,8,5","19,22,29,33,11","29,10,16,19,3","16,26,21,3","4,21,11,24","4,40,10,15","5,2,16,26","39,21,40,27","11,39,15,36","23,16,22","14,4,28,40","34,25,16,3","18,8,40,22","33,40,19,3"],
-            ["3,35,40,2","X","7,39,20","21,39,35,26","18,35,1,40","9,27,26,21,25","1,2,24,22","12,5,6,30","24,19,26,3","17,7,19,39","21,13,20,35","27,2,5,13","30,4,24,20","18,9,28,1","28,26,2,15","2,15,39,8","21,12,20,40","16,38,10,12","13,19,37,11","9,31,29,7","18,24,36,33,18","38,39,17,37","39,18,1,2,23,14","38,28,36,39","25,20,24,27","2,27,19,5","26,27,1,17","32,12,33,11","32,13,23,4,19","2,35,26,37","35,16,34,11"],
-            ["18,35,28,26","7,39,20","X","40,9,27,26","21,12,6,30","19,15,30,29","36,24,27,29","24,22,8,16","39,40,25,30","8,16,26,9","38,33,17,29","31,33,28,10","34,1,5,36","25,23,37,8","30,12,22,40,35","32,11,10,16,17","28,8,38,6","4,21,17,29","38,15,14","11,30,8,5","19,22,29,33,11","29,10,16,19,3","16,26,21,3","4,21,11,24","4,40,10,15","5,2,16,26","39,21,40,27","11,39,15,36","23,16,22","14,4,28,40","34,25,16,3"],
-            ["39,8,39,36","21,39,35,26","40,9,27,26","X","24,19,26,3","17,7,19,39","21,13,20,35","27,2,5,13","30,4,24,20","18,9,28,1","28,26,2,15","2,15,39,8","21,12,20,40","16,38,10,12","13,19,37,11","9,31,29,7","18,24,36,33,18","38,39,17,37","39,18,1,2,23,14","38,28,36,39","25,20,24,27","2,27,19,5","26,27,1,17","32,12,33,11","32,13,23,4,19","2,35,26,37","35,16,13,10","17,15,32,18,14,37","26,4,30,9","31,25,4,19,15","27,2"],
-            ["33,18,17,7","18,35,1,40","21,12,6,30","24,19,26,3","X","35,20,23,5","36,24,30,29","19,15,40,39","38,40,16,5","36,33,25,26","23,18,33,6","27,38,2,4","19,4,28,11","8,21,36,5","32,10,22,36","26,27,18,21","26,21,30,22","40,23,39,17","9,1,8,39,17","33,37,9,35,19","28,15,24,27","15,19,13,15,31","1,26,11,32","38,39,25,27","24,21,8,34,18","29,11,30,2","31,32,11,4,5","7,1,8,16","5,34,2,40","26,2,3,29","30,8,30,5"],
-            ["21,12,6,30","9,27,26,21,25","19,15,30,29","17,7,19,39","35,20,23,5","X","24,22,8,16","39,40,25,30","8,16,26,9","38,33,17,29","31,33,28,10","34,1,5,36","25,23,37,8","30,12,22,40,35","32,11,10,16,17","28,8,38,6","4,21,17,29","38,15,14","11,30,8,5","19,22,29,33,11","29,10,16,19,3","16,26,21,3","4,21,11,24","4,40,10,15","5,2,16,26","39,21,40,27","11,39,15,36","23,16,22","14,4,28,40","34,25,16,3","18,8,40,22"],
-            ["38,39,18,3","1,2,24,22","36,24,27,29","21,13,20,35","36,24,30,29","24,22,8,16","X","18,35,28,26","39,8,39,36","33,18,17,7","21,12,6,30","38,39,18,3","36,18,21,3","32,11,5,11","12,16,23,2","18,23,15,38","26,25,21,19","39,22,2,33","38,24,3,6,28","16,17,28,8","38,6,4,21","17,29,15,14","11,30,8,5","19,22,29,33,11","29,10,16,19,3","16,26,21,3","4,21,11,24","4,40,10,15","5,2,16,26","39,21,40,27","11,39,15,36"],
-            ["36,18,21,3","12,5,6,30","24,22,8,16","27,2,5,13","19,15,40,39","39,40,25,30","18,35,28,26","X","24,19,26,3","17,7,19,39","21,13,20,35","27,2,5,13","30,4,24,20","18,9,28,1","28,26,2,15","2,15,39,8","21,12,20,40","16,38,10,12","13,19,37,11","9,31,29,7","18,24,36,33,18","38,39,17,37","39,18,1,2,23,14","38,28,36,39","25,20,24,27","2,27,19,5","26,27,1,17","32,12,33,11","32,13,23,4,19","2,35,26,37","35,16,34,11"],
-            ["32,11,5,11","24,19,26,3","39,40,25,30","30,4,24,20","38,40,16,5","8,16,26,9","33,18,17,7","24,19,26,3","X","14,17,18,17","21,39,39,24","14,26,36,39","12,16,23,34","11,29,8,5","16,19,25,9","30,12,10,18,23","24,3,4,21","11,30,10,16","33,11,33,6","9,26,5,11","30,1,37,13","17,40,18,31","1,14,33,31","18,27,23,22","25,38,11,26,9","31,33,28,18","16,5,32,24","23,4,10,4","21,27,30,10","16,1,32,37","8,7,6,40"],
-            ["12,16,23,2","17,7,19,39","8,16,26,9","18,9,28,1","36,33,25,26","38,33,17,29","21,12,6,30","17,7,19,39","14,17,18,17","X","36,7,23,34","17,29,23,22","25,38,11,14,17","18,17,21,39","17,40,39,24","14,26,36,39","12,16,23,34","11,29,8,5","16,19,25,9","30,12,10,18,23","24,3,4,21","11,30,10,16","33,11,33,6","9,26,5,11","30,1,37,13","17,40,18,31","1,14,33,31","18,27,23,22","25,38,11,26,9","31,33,28,18","16,5,32,24"],
-            ["18,23,15,38","21,13,20,35","38,33,17,29","28,26,2,15","23,18,33,6","31,33,28,10","38,39,18,3","21,13,20,35","21,39,39,24","36,7,23,34","X","14,26,12,1","37,8,7,6,40","36,13,14,17","18,17,21,39","17,40,39,24","14,26,36,39","12,16,23,34","11,29,8,5","16,19,25,9","30,12,10,18,23","24,3,4,21","11,30,10,16","33,11,33,6","9,26,5,11","30,1,37,13","17,40,18,31","1,14,33,31","18,27,23,22","25,38,11,26,9","31,33,28,18"],
-            ["26,25,21,19","27,2,5,13","34,1,5,36","2,15,39,8","27,38,2,4","34,1,5,36","36,18,21,3","27,2,5,13","14,26,36,39","17,29,23,22","14,26,12,1","X","32,18,8,35","2,23,14,17","18,17,21,39","17,40,39,24","14,26,36,39","12,16,23,34","11,29,8,5","16,19,25,9","30,12,10,18,23","24,3,4,21","11,30,10,16","33,11,33,6","9,26,5,11","30,1,37,13","17,40,18,31","1,14,33,31","18,27,23,22","25,38,11,26,9"],
-            ["39,22,2,33","30,4,24,20","25,23,37,8","16,38,10,12","19,4,28,11","25,23,37,8","32,11,5,11","30,4,24,20","12,16,23,34","25,38,11,14,17","37,8,7,6,40","32,18,8,35","X","38,18,8,16","39,24,14,17","1,35,29,21","34,30,6,22","23,15,11,37,3","18,2,28,40","15,10,18,17","26,24,14,34,4","36,15,6,33,15","25,19,14,16","34,28,32,10","12,1,40,4","12,1,36,39","39,12,18,38","32,37,16,19","1,14,14,26","14,16,10,9,3","40,35,38,19"],
-            ["38,24,3,6,28","18,9,28,1","30,12,22,40,35","13,19,37,11","8,21,36,5","30,12,22,40,35","12,16,23,2","18,9,28,1","11,29,8,5","16,19,25,9","36,13,14,17","2,23,14,17","38,18,8,16","X","26,1,37,3","21,7,30,26","38,14,33,19","8,35,35,21","8,5,3,34","21,5,37,33","24,17,21,38","31,10,40,24,25","33,19,34,5,3","1,33,8,38","39,4,40,2,16","16,1,24,25","18,24,19,5","34,35,28","32,6,29,36","37,12,18,24"],
-            ["16,17,28,8","28,26,2,15","32,11,10,16,17","9,31,29,7","32,10,22,36","32,11,10,16,17","18,23,15,38","28,26,2,15","16,19,25,9","30,12,10,18,23","18,17,21,39","17,40,39,24","39,24,14,17","26,1,37,3","X","12,18,24,5,11","34,35,28,32,6","29,36,37,12,18,24","27,22,26,15","7,18,37,34,30","39,12,5,11","29,36,37,33,21","1,8,7,6,22","18,38,12,34","23,8,26,27","36,34,18,27","13,17,32,10","25,29,29","35,29,6,40","23,15,15,6","20,37,21,14","38,14,12,30"],
-            ["38,6,4,21","2,15,39,8","28,8,38,6","18,24,36,33,18","26,27,18,21","28,8,38,6","26,25,21,19","2,15,39,8","30,12,10,18,23","24,3,4,21","17,40,39,24","14,26,36,39","1,35,29,21","21,7,30,26","12,18,24,5,11","X","10,3,15,25","37,12,36,12","9,4,1,2","36,10,30,29","16,17,30,27","24,4,23,32","8,39,18,10,23","16,12,26,31","38,32,5,8","19,20,33,8","8,33,19,10","30,29,25,23,22","35,34,9,38,20","23,20,38,27","26,11,28,14"],
-            ["17,29,15,14","39,8,21,12","4,21,17,29","38,39,17,37","26,21,30,22","4,21,17,29","39,22,2,33","21,12,20,40","24,3,4,21","11,30,10,16","14,26,36,39","12,16,23,34","34,30,6,22","38,14,33,19","34,35,28,32,6","10,3,15,25","X","37,12,2,24","20,40,4,18,12","16,5,23,32","25,23,31,22","35,37,10,34","24,20,15,23","39,18,15,34","3,16,12,10,26","39,32,38,18,25","21,15,3,38","37,13,28,35,34","10,34,15,30","26,11,22,35","27,16,1,30"],
-            ["11,30,8,5","20,40,16,38","38,15,14","39,18,1,2","40,23,39,17","38,15,14","38,24,3,6,28","16,38,10,12","11,30,10,16","33,11,33,6","12,16,23,34","11,29,8,5","23,15,11,37,3","8,35,35,21","29,36,37,12,18,24","37,12,36,12","37,12,2,24","X","9,4,1,2","36,10,30,29","16,17,30,27","24,4,23,32","8,39,18,10,23","16,12,26,31","38,32,5,8","19,20,33,8","8,33,19,10","30,29,25,23,22","35,34,9,38,20","23,20,38,27","26,11,28,14"],
-            ["19,22,29,33,11","10,12,13,19","11,30,8,5","23,14,38,28","9,1,8,39,17","11,30,8,5","16,17,28,8","13,19,37,11","33,11,33,6","9,26,5,11","11,29,8,5","16,19,25,9","18,2,28,40","8,5,3,34","27,22,26,15","9,4,1,2","20,40,4,18,12","9,4,1,2","X","7,14,26,11","21,6,21,9","2,24,35,37","36,11,4,20","10,24,13,25","8,25,11,6","9,31,8,16","23,40,16,21","40,4,18,12","16,5,12,22","9,37,4,28","33,39,10,34"],
-            ["29,10,16,19,3","37,11,9,31","19,22,29,33,11","36,39,25,20","33,37,9,35,19","19,22,29,33,11","38,6,4,21","9,31,29,7","9,26,5,11","30,1,37,13","16,19,25,9","30,12,10,18,23","15,10,18,17","21,5,37,33","7,18,37,34,30","36,10,30,29","16,5,23,32","36,10,30,29","7,14,26,11","X","10,34,10,34","23,22,35,34","9,38,20","23,20,38,27","26,7,32,10","14,19,3,12,28","10,3,15,25","37,12,36,12","9,4,1,2","36,10,30,29","16,17,30,27"],
-            ["16,26,21,3","29,7,18,24","29,10,16,19,3","24,27,2,27","28,15,24,27","29,10,16,19,3","17,29,15,14","18,24,36,33,18","30,1,37,13","17,40,18,31","30,12,10,18,23","24,3,4,21","26,24,14,34,4","24,17,21,38","39,12,5,11","16,17,30,27","25,23,31,22","16,17,30,27","21,6,21,9","10,34,10,34","X","2,3,13,16","1,39,21,6","8,37,3,23","7,9,9,8,5","29,10,27,39","1,20,7,6","3,15,20,26","23,32,1,14,31","13,19,29,13","37,29,13,3"],
-            ["4,21,11,24","36,33,18,39","16,26,21,3","19,5,26,27","15,19,13,15,31","16,26,21,3","11,30,8,5","38,39,17,37","17,40,18,31","1,14,33,31","24,3,4,21","11,30,10,16","36,15,6,33,15","31,10,40,24,25","29,36,37,33,21","24,4,23,32","35,37,10,34","24,4,23,32","2,24,35,37","23,22,35,34","2,3,13,16","X","36,12,1,15","19,16,8,13,32","14,36,8,2,3","2,3,13,3","37,24,35,10","15,11,20,12,32","19,31,25,32","30,3,34,25","33,24,7,35"],
-            ["4,40,10,15","18,39,17,37","4,21,11,24","32,12,1,17","1,26,11,32","4,21,11,24","19,22,29,33,11","39,18,1,2","1,14,33,31","18,27,23,22","11,30,10,16","33,11,33,6","25,19,14,16","33,19,34,5,3","8,7,6,22","8,39,18,10,23","24,20,15,23","8,39,18,10,23","36,11,4,20","9,38,20","1,39,21,6","36,12,1,15","X","28,36,19,16","24,38,29,33","32,34,11,7","32,31,25,27","19,11,35,17","30,2,1,2,39,8","21,19,7,28","35,4,24,22"],
-            ["5,2,16,26","23,14,38,28","4,40,10,15","33,11,32,13","38,39,25,27","4,40,10,15","29,10,16,19,3","23,14,38,28","18,27,23,22","25,38,11,26,9","33,11,33,6","9,26,5,11","34,28,32,10","1,33,8,38","18,38,12,34","16,12,26,31","39,18,15,34","16,12,26,31","10,24,13,25","23,20,38,27","8,37,3,23","19,16,8,13,32","28,36,19,16","X","35,30,9,27","33,6,24,22","38,20,37,7","37,23,35,37,29","10,16,34,5","37,14,26,38","28,10,4,16,38"],
-            ["39,21,40,27","36,39,25,20","5,2,16,26","2,35,26,37","24,21,8,34,18","5,2,16,26","16,26,21,3","25,20,24,27","25,38,11,26,9","31,33,28,18","9,26,5,11","30,1,37,13","12,1,40,4","39,4,40,2,16","23,8,26,27","38,32,5,8","3,16,12,10,26","38,32,5,8","8,25,11,6","26,7,32,10","7,9,9,8,5","14,36,8,2,3","24,38,29,33","35,30,9,27","X","37,7,11,40","5,1,29,6,39","3,7,34,40,28,33","2,35,10,13","4,33,25,38","39,8,19,11"],
-            ["11,39,15,36","24,22,8,16","39,21,40,27","35,16,34,11","29,11,30,2,31","39,21,40,27","4,21,11,24","2,27,19,5","31,33,28,18","16,5,32,24","30,1,37,13","17,40,18,31","12,1,36,39","16,1,24,25","36,34,18,27","19,20,33,8","39,32,38,18,25","19,20,33,8","9,31,8,16","14,19,3,12,28","29,10,27,39","2,3,13,3","32,34,11,7","24,22,38,20","37,7,11,40","X","39,19,9,2,35","10,13,40,18","38,7,2,16","16,15,10,24,19","2,5,30,15,14"],
-            ["23,16,22","8,16,26,9","11,39,15,36","13,10,17,15","32,11,4,5","11,39,15,36","4,40,10,15","26,27,1,17","16,5,32,24","23,4,10,4","17,40,18,31","1,14,33,31","39,12,18,38","18,24,19,5","13,17,32,10","8,33,19,10","8,33,19,10","23,40,16,21","37,12,36,12","10,3,15,25","1,20,7,6","37,24,35,10","32,31,25,27","37,23,35,37,29","5,1,29,6,39","39,19,9,2,35","X","13,32,17,38","17,30,5,1","4,38,14,6","22,18,30,10,9,1"],
-            ["14,4,28,40","38,33,17,29","23,16,22","32,18,14,37","7,1,8,16","23,16,22","5,2,16,26","32,12,33,11","23,4,10,4","21,27,30,10","1,14,33,31","18,27,23,22","32,37,16,19","34,35,28","25,29,29","30,29,25,23,22","25,29,29","40,4,18,12","16,5,12,22","37,12,36,12","3,15,20,26","15,11,20,12,32","19,11,35,17","10,16,34,5","6,39,3,7","10,13,40,18","13,32,17,38","X","9,28,15,17,40","29,21,5,1","23,10,9,38,1,37"],
-            ["34,25,16,3","31,33,28,10","14,4,28,40","26,4,30,9","5,34,2,40","14,4,28,40","39,21,40,27","32,13,23,4,19","21,27,30,10","16,1,32,37","18,27,23,22","25,38,11,26,9","1,14,14,26","32,6,29,36","35,29,6,40","35,34,9,38,20","35,34,9,38,20","16,15,10","9,37,4,28","9,4,1,2","23,32,1,14,31","30,3,34,25","30,2,1,2,39,8","21,19,7,28","34,40,28,33","38,7,2,16","17,30,5,1","9,28,15,17,40","X","14,10,29,21","40,3,18,37,32,34"],
-            ["18,8,40,22","34,1,5,36","34,25,16,3","31,25,4,19,15","26,2,3,29","34,25,16,3","11,39,15,36","2,35,26,37","16,1,32,37","8,7,6,40","25,38,11,26,9","31,33,28,18","14,16,10,9,3","37,12,18,24","23,15,15,6","23,20,38,27","23,20,38,27","24,19,2,5","33,39,10,34","36,10,30,29","13,19,29,13","33,24,7,35","35,17,30,2","37,14,26,38","2,35,10,13","16,15,10","4,38,14,6","29,21,5,1","14,10,29,21","X","32,2,17,40,22,18"],
-            ["33,40,19,3","25,23,37,8","18,8,40,22","19,15,27,2","30,8,30,5","18,8,40,22","23,16,22","35,16,34,11","8,7,6,40","36,13,14,17","31,33,28,18","16,5,32,24","40,35,38,19","12,18,24,5,11","20,37,21,14","26,11,22,35","26,11,22,35","24,19,2,5","26,11,22,35","16,17,30,27","37,29,13,3","7,35,9,27","11,7,2,35","35,30,32,34","24,38,29,33","4,33,25,38","22,18,30,10","23,10,9,38","40,3,18,37","32,2,17,40","X"]
-        ];
+        // --- Gemini API Helper ---
+        const API_KEY = ""; // Provided by Canvas environment or leave empty
+        const API_URL_GEMINI = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
+        async function callGeminiAPI(promptText, targetElement, buttonElement, loadingText = "AI 思考中...") {
+            if (!promptText || promptText.trim() === "") {
+                showNotification("請先提供相關內容以供 AI 分析。", "error", targetElement ? targetElement.id + "_notification" : "globalNotification");
+                return null;
+            }
 
-        const improvingParameterSelect = document.getElementById('improvingParameter');
-        const deterioratingParameterSelect = document.getElementById('deterioratingParameter');
-        const findPrinciplesButton = document.getElementById('findPrinciples');
-        const resultsText = document.getElementById('resultsText');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const buttonTextEl = document.getElementById('buttonText');
-        const buttonLoader = document.getElementById('buttonLoader');
+            const originalButtonText = buttonElement.innerHTML;
+            buttonElement.innerHTML = `${loadingText} <div class="loading-spinner"></div>`;
+            buttonElement.disabled = true;
 
-        // 函數：填充下拉選單
-        function populateDropdowns() {
-            parameters.forEach((param, index) => {
-                const option1 = new Option(`${index + 1}. ${param}`, index);
-                const option2 = new Option(`${index + 1}. ${param}`, index);
-                improvingParameterSelect.add(option1);
-                deterioratingParameterSelect.add(option2);
-            });
-        }
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: promptText }] }]
+            };
 
-        // 函數：處理查詢
-        function findAndDisplayPrinciples() {
-            buttonTextEl.classList.add('hidden');
-            buttonLoader.classList.remove('hidden');
-            findPrinciplesButton.disabled = true;
-            resultsText.textContent = '查詢中...';
+            try {
+                const response = await fetch(API_URL_GEMINI, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            setTimeout(() => {
-                const improvingIndex = parseInt(improvingParameterSelect.value);
-                const deterioratingIndex = parseInt(deterioratingParameterSelect.value);
-
-                resultsContainer.classList.remove('bg-emerald-700', 'bg-amber-700', 'bg-sky-700', 'bg-slate-700');
-                resultsContainer.classList.add('transition-colors', 'duration-300');
-
-                if (improvingIndex === deterioratingIndex) {
-                    resultsText.textContent = "改善參數和惡化參數不能相同。";
-                    resultsContainer.classList.add('bg-amber-700');
-                } else if (matrixData[improvingIndex] && typeof matrixData[improvingIndex][deterioratingIndex] !== 'undefined') {
-                    const principles = matrixData[improvingIndex][deterioratingIndex];
-                    if (principles === "X") {
-                        resultsText.textContent = "此為相同參數，無直接矛盾原理。";
-                        resultsContainer.classList.add('bg-sky-700');
-                    } else if (principles === "") {
-                        resultsText.textContent = "此組合無對應發明原理，或數據暫未提供。";
-                        resultsContainer.classList.add('bg-sky-700');
-                    } else if (principles) {
-                        resultsText.innerHTML = `<span class="font-semibold text-sky-300">建議發明原理編號:</span> <span class="text-2xl font-bold text-white">${principles.replace(/,/g, ', ')}</span>`;
-                        resultsContainer.classList.add('bg-emerald-700');
-                    } else {
-                        resultsText.textContent = "數據格式有誤或未提供。";
-                        resultsContainer.classList.add('bg-amber-700');
-                    }
-                } else {
-                    resultsText.textContent = "選取的參數組合數據不存在。";
-                    resultsContainer.classList.add('bg-amber-700');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Gemini API Error:", errorData);
+                    throw new Error(`API 請求失敗，狀態碼：${response.status}. ${errorData?.error?.message || ''}`);
                 }
 
-                buttonTextEl.classList.remove('hidden');
-                buttonLoader.classList.add('hidden');
-                findPrinciplesButton.disabled = false;
-            }, 300);
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error("Gemini API 意外的回應結構:", result);
+                    throw new Error("AI 未能產生有效的回應內容。");
+                }
+            } catch (error) {
+                console.error("呼叫 Gemini API 時發生錯誤:", error);
+                showNotification(`AI 服務錯誤: ${error.message}`, "error", targetElement ? targetElement.id + "_notification" : "globalNotification");
+                return null;
+            } finally {
+                buttonElement.innerHTML = originalButtonText;
+                buttonElement.disabled = false;
+            }
         }
 
-        findPrinciplesButton.addEventListener('click', findAndDisplayPrinciples);
-        populateDropdowns();
-    </script>
 
-</body>
-</html>
+        // --- TRIZ Data (Simplified) ---
+        const engineeringParameters = [
+            { id: "1", name: "1. 移動物體的重量" }, { id: "2", name: "2. 靜止物體的重量" },
+            { id: "3", name: "3. 移動物體的長度" }, { id: "4", name: "4. 靜止物體的長度" },
+            { id: "5", name: "5. 移動物體的面積" }, { id: "6", name: "6. 靜止物體的面積" },
+            { id: "7", name: "7. 移動物體的體積" }, { id: "8", name: "8. 靜止物體的體積" },
+            { id: "9", name: "9. 速度" }, { id: "10", name: "10. 力" },
+            { id: "11", name: "11. 應力或壓力" }, { id: "12", name: "12. 形狀" },
+            { id: "13", name: "13. 物體組成的穩定性" }, { id: "14", name: "14. 強度" },
+            { id: "15", name: "15. 移動物體的作用持續時間" }, { id: "16", name: "16. 靜止物體的作用持續時間" },
+            { id: "17", name: "17. 溫度" }, { id: "18", name: "18. 照明強度" },
+            { id: "19", name: "19. 移動物體的能量消耗" }, { id: "20", name: "20. 靜止物體的能量消耗" },
+            { id: "21", name: "21. 功率" }, { id: "22", name: "22. 能量損失" },
+            { id: "23", name: "23. 物質損失" }, { id: "24", name: "24. 資訊損失" },
+            { id: "25", name: "25. 時間損失 (系統時間)" }, { id: "26", name: "26. 物質數量" },
+            { id: "27", name: "27. 可靠性 (系統有效性)" }, { id: "28", name: "28. 量測準確性" },
+            { id: "29", name: "29. 製造精密度" }, { id: "30", name: "30. 物體受外部有害因素影響" },
+            { id: "31", name: "31. 物體產生的有害因素" }, { id: "32", name: "32. 製造容易度" },
+            { id: "33", name: "33. 操作容易度" }, { id: "34", name: "34. 維修容易度" },
+            { id: "35", name: "35. 適應性或通用性" }, { id: "36", name: "36. 裝置複雜性" },
+            { id: "37", name: "37. 偵測與量測困難度" }, { id: "38", name: "38. 自動化程度" },
+            { id: "39", name: "39. 生產力／效能" }
+        ];
+        const inventivePrinciples = [
+            { id: "1", name: "1. 分割 (Segmentation)"}, { id: "2", name: "2. 取出 (Taking out / Extraction)"},
+            { id: "3", name: "3. 局部性質 (Local quality)"}, { id: "4", name: "4. 非對稱 (Asymmetry)"},
+            { id: "5", name: "5. 合併 (Merging / Consolidation)"}, { id: "6", name: "6. 泛用性 (Universality)"},
+            { id: "7", name: "7. 套疊 (Nested doll / Matryoshka)"}, { id: "8", name: "8. 反重力 (Anti-weight / Counterweight)"},
+            { id: "9", name: "9. 預先反向作用 (Preliminary anti-action / Prior counteraction)"}, { id: "10", name: "10. 預先作用 (Preliminary action / Prior action)"},
+            { id: "11", name: "11. 預先保護 (Beforehand cushioning / Cushion in advance)"}, { id: "12", name: "12. 等勢能 (Equipotentiality)"},
+            { id: "13", name: "13. 反向 (The other way round / Inversion)"}, { id: "14", name: "14. 曲面化 (Spheroidality / Curvature)"},
+            { id: "15", name: "15. 動態化 (Dynamics / Dynamization)"}, { id: "16", name: "16. 不足或超額作用 (Partial or excessive actions)"},
+            { id: "17", name: "17. 維度轉換 (Another dimension / Transition into a new dimension)"}, { id: "18", name: "18. 機械振動 (Mechanical vibration)"},
+            { id: "19", name: "19. 週期性作用 (Periodic action)"}, { id: "20", name: "20. 有用作用的連續性 (Continuity of useful action)"},
+            { id: "21", name: "21. 高速執行 (Skipping / Rushing through)"}, { id: "22", name: "22. 化害為利 (Blessing in disguise / Convert harm into benefit)"},
+            { id: "23", name: "23. 回饋 (Feedback)"}, { id: "24", name: "24. 中介物 (Intermediary / Mediator)"},
+            { id: "25", name: "25. 自助服務 (Self-service)"}, { id: "26", name: "26. 複製 (Copying)"},
+            { id: "27", name: "27. 廉價替代品 (Cheap short-living objects)"}, { id: "28", name: "28. 機械系統替代 (Mechanics substitution / Replace mechanical system)"},
+            { id: "29", name: "29. 氣動或液壓系統 (Pneumatics and hydraulics)"}, { id: "30", name: "30. 可撓性殼膜 (Flexible shells and thin films)"},
+            { id: "31", name: "31. 多孔材料 (Porous materials)"}, { id: "32", name: "32. 顏色改變 (Color changes)"},
+            { id: "33", name: "33. 同質性 (Homogeneity)"}, { id: "34", name: "34. 拋棄與再生 (Discarding and recovering / Rejection and regeneration)"},
+            { id: "35", name: "35. 參數改變 (Parameter changes)"}, { id: "36", name: "36. 相態轉換 (Phase transitions)"},
+            { id: "37", name: "37. 熱膨脹 (Thermal expansion)"}, { id: "38", name: "38. 強氧化劑 (Strong oxidants / Accelerated oxidation)"},
+            { id: "39", name: "39. 惰性環境 (Inert atmosphere)"}, { id: "40", name: "40. 複合材料 (Composite materials)"}
+        ];
+        const simplifiedContradictionMap = { "25_27": ["9", "5", "40", "4"], "default": ["1", "2", "5", "10", "13", "35"] };
+        function getSuggestedPrinciples(improvingParamId, worseningParamId) {
+            const key = `${improvingParamId}_${worseningParamId}`;
+            const principleIds = simplifiedContradictionMap[key] || simplifiedContradictionMap["default"];
+            return principleIds.map(id => inventivePrinciples.find(p => p.id === id)).filter(p => p);
+        }
+
+        // --- Utility Functions ---
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        
+        function updateUI() {
+            document.querySelectorAll('.step-section').forEach(section => section.classList.remove('active'));
+            const currentStepSection = document.getElementById(`step${appState.currentStep}`);
+            if (currentStepSection) currentStepSection.classList.add('active');
+            
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.tab === `step${appState.currentStep}`) button.classList.add('active');
+            });
+            
+            const prevStepBtn = document.getElementById('prevStepBtn');
+            if (prevStepBtn) prevStepBtn.disabled = appState.currentStep === 1;
+            
+            const nextStepBtn = document.getElementById('nextStepBtn');
+            if (nextStepBtn) nextStepBtn.textContent = appState.currentStep === 6 ? '完成並檢視報告' : '下一步';
+        }
+
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetStep = parseInt(button.dataset.tab.replace('step', ''));
+                saveCurrentStepDataToState(); 
+                appState.currentStep = targetStep;
+                populateCurrentStepUIFromState(); 
+                updateUI();
+            });
+        });
+
+        function populateAllUIFromState() {
+            document.getElementById('keyProblem').value = appState.keyProblem;
+            renderRcaCauses();
+            renderConflicts();
+            renderTrizSolutions();
+            renderAbcFiltering();
+            renderMcdmCriteria();
+            renderMcdmEvaluation();
+            renderIdeasLandscapeInputs();
+            renderIdeasLandscapePlot(); 
+            renderLeanCanvas();
+            if (appState.currentStep === 6) renderFinalReport(); 
+
+            updateUI();
+            populateCurrentStepUIFromState();
+        }
+        
+        function populateCurrentStepUIFromState() {
+            if (appState.currentStep === 1) {
+                document.getElementById('keyProblem').value = appState.keyProblem;
+                renderRcaCauses();
+            }
+            if (appState.currentStep === 2) renderConflicts();
+            if (appState.currentStep === 3) renderTrizSolutions();
+            if (appState.currentStep === 4) { 
+                renderAbcFiltering(); 
+                renderMcdmCriteria(); 
+                renderMcdmEvaluation(); 
+                renderIdeasLandscapeInputs(); 
+                renderIdeasLandscapePlot(); 
+                renderTrizIdealnessAssessment(); 
+            }
+            if (appState.currentStep === 5) renderLeanCanvas();
+            if (appState.currentStep === 6) renderFinalReport(); 
+        }
+
+        function saveCurrentStepDataToState() {
+            if (document.getElementById('step1').classList.contains('active')) {
+                appState.keyProblem = document.getElementById('keyProblem').value;
+            }
+            if (document.getElementById('step5').classList.contains('active')) {
+                 saveLeanCanvasData(); 
+            }
+        }
+
+
+        // --- Step 1: Problem Definition & RCA ---
+        const rcaCausesContainer = document.getElementById('rcaCausesContainer');
+        const aiSuggestRcaBtn = document.getElementById('aiSuggestRcaBtn');
+        const aiRcaSuggestionsContainer = document.getElementById('aiRcaSuggestions');
+
+        document.getElementById('addRcaCauseBtn').addEventListener('click', () => addRcaCause());
+        
+        aiSuggestRcaBtn.addEventListener('click', async () => {
+            const keyProblemText = appState.keyProblem;
+            if (!keyProblemText.trim()) {
+                showNotification("請先在上方描述關鍵問題。", "error", "aiRcaSuggestions");
+                return;
+            }
+            const prompt = `針對以下關鍵問題：「${keyProblemText}」，請提出3至5個可能的根本原因（Root Causes）。每個原因請簡潔表述。`;
+            const suggestions = await callGeminiAPI(prompt, aiRcaSuggestionsContainer, aiSuggestRcaBtn, "AI 分析中...");
+            if (suggestions) {
+                aiRcaSuggestionsContainer.innerHTML = `<p class="font-semibold mb-1">AI 建議的潛在根本原因：</p><div class="whitespace-pre-wrap p-2 bg-indigo-50 rounded">${suggestions}</div><p class="text-xs mt-1 text-gray-500">您可以參考以上建議，手動將其加入下方的根本原因分析列表。</p>`;
+                aiRcaSuggestionsContainer.style.display = 'block';
+            } else {
+                aiRcaSuggestionsContainer.innerHTML = `<p class="text-red-600">無法獲取 AI 建議。</p>`;
+                aiRcaSuggestionsContainer.style.display = 'block';
+            }
+        });
+
+        function addRcaCause(parentId = null, level = 0, initialText = "") {
+            const causeId = generateId(); appState.rcaCauses.push({ id: causeId, text: initialText, parentId: parentId, level: level }); renderRcaCauses();
+        }
+        function renderRcaCauses() {
+            rcaCausesContainer.innerHTML = '';
+            const buildCauseTree = (parentId = null, level = 0) => {
+                appState.rcaCauses.filter(cause => cause.parentId === parentId).forEach(cause => {
+                    const causeDiv = document.createElement('div'); causeDiv.className = 'dynamic-list-item mb-2'; causeDiv.style.marginLeft = `${level * 20}px`;
+                    const input = document.createElement('input'); input.type = 'text'; input.value = cause.text; input.placeholder = level === 0 ? '主要原因...' : '造成此原因的子原因...'; input.className = 'p-1 border border-gray-300 rounded-md flex-grow'; input.onchange = (e) => cause.text = e.target.value;
+                    const removeBtn = document.createElement('button'); removeBtn.textContent = '移除'; removeBtn.className = 'remove-btn text-xs'; removeBtn.onclick = () => { appState.rcaCauses = appState.rcaCauses.filter(c => c.id !== cause.id); removeChildrenCauses(cause.id); renderRcaCauses(); };
+                    const addSubCauseBtn = document.createElement('button'); addSubCauseBtn.textContent = '新增子原因'; addSubCauseBtn.className = 'ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs py-1 px-2 rounded'; addSubCauseBtn.onclick = () => addRcaCause(cause.id, level + 1);
+                    causeDiv.appendChild(input); causeDiv.appendChild(addSubCauseBtn); causeDiv.appendChild(removeBtn); rcaCausesContainer.appendChild(causeDiv); buildCauseTree(cause.id, level + 1);
+                });
+            }; buildCauseTree();
+        }
+        function removeChildrenCauses(parentId) {
+            const children = appState.rcaCauses.filter(c => c.parentId === parentId);
+            children.forEach(child => { removeChildrenCauses(child.id); appState.rcaCauses = appState.rcaCauses.filter(c => c.id !== child.id); });
+        }
+
+        // --- Step 2: Conflict Analysis ---
+        const conflictAnalysisContainer = document.getElementById('conflictAnalysisContainer');
+        document.getElementById('addConflictBtn').addEventListener('click', addConflict);
+        function addConflict() { const conflictId = generateId(); appState.conflicts.push({ id: conflictId, rcaCauseText: "", benefit: "", drawback: "" }); renderConflicts(); }
+        function renderConflicts() {
+            conflictAnalysisContainer.innerHTML = '';
+            appState.conflicts.forEach((conflict, index) => {
+                const div = document.createElement('div'); div.className = 'p-4 border border-gray-200 rounded-md mb-4 shadow';
+                div.innerHTML = `<h4 class="font-semibold text-md mb-2">衝突點 ${index + 1}</h4>
+                    <div class="mb-2"><label class="block text-sm font-medium text-gray-600">相關根本原因 (可選):</label><input type="text" value="${conflict.rcaCauseText}" onchange="appState.conflicts[${index}].rcaCauseText = this.value" class="w-full p-1 border border-gray-300 rounded-md" placeholder="例如：文卷室工作制度不完善"></div>
+                    <div class="mb-2"><label class="block text-sm font-medium text-gray-600">試圖改善的方面 (帶來的好處):</label><input type="text" value="${conflict.benefit}" onchange="appState.conflicts[${index}].benefit = this.value" class="w-full p-1 border border-gray-300 rounded-md" placeholder="例如：人員培養的時間較短"></div>
+                    <div class="mb-2"><label class="block text-sm font-medium text-gray-600">導致惡化的方面 (帶來的壞處):</label><input type="text" value="${conflict.drawback}" onchange="appState.conflicts[${index}].drawback = this.value" class="w-full p-1 border border-gray-300 rounded-md" placeholder="例如：文卷室工作制度不完善"></div>
+                    <button onclick="removeConflict('${conflict.id}')" class="remove-btn text-xs">移除此衝突</button>`;
+                conflictAnalysisContainer.appendChild(div);
+            });
+        }
+        function removeConflict(conflictId) { appState.conflicts = appState.conflicts.filter(c => c.id !== conflictId); appState.trizSolutions = appState.trizSolutions.filter(s => s.conflictId !== conflictId); renderConflicts(); }
+
+        // --- Step 3: TRIZ Solution Generation ---
+        const trizSolutionsContainer = document.getElementById('trizSolutionsContainer');
+        document.getElementById('addTrizSolutionSetBtn').addEventListener('click', showConflictSelectorForTriz);
+        function showConflictSelectorForTriz() {
+            if (appState.conflicts.length === 0) { showNotification("請先在步驟2新增至少一個衝突點。", "error"); return; }
+            const existingSelector = trizSolutionsContainer.querySelector('#trizConflictSelectorContainer');
+            if (existingSelector) return; 
+
+            const selectorDiv = document.createElement('div'); selectorDiv.id = 'trizConflictSelectorContainer'; selectorDiv.className = 'mb-4 p-3 border rounded bg-gray-50';
+            selectorDiv.innerHTML = `<label class="block text-sm font-medium text-gray-700 mb-1">選擇一個衝突點來生成方案：</label>
+                <select id="trizConflictSelector" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                <button id="confirmTrizConflictSelect" class="mt-2 bg-purple-500 hover:bg-purple-600 text-white py-1 px-3 rounded text-sm">確定並新增方案區塊</button>`;
+            trizSolutionsContainer.insertBefore(selectorDiv, trizSolutionsContainer.firstChild);
+            const selectConflictEl = document.getElementById('trizConflictSelector');
+            appState.conflicts.forEach(conflict => { const option = document.createElement('option'); option.value = conflict.id; option.textContent = `衝突: "${conflict.benefit}" vs "${conflict.drawback}"`; selectConflictEl.appendChild(option); });
+            document.getElementById('confirmTrizConflictSelect').onclick = () => { if (
