@@ -194,8 +194,9 @@
         .day-view-controls {
             margin-top: 1.5rem;
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* Distribute space between buttons */
             align-items: center;
+            gap: 0.75rem; /* Add gap between buttons */
         }
         .day-view-controls button {
             padding: 0.625rem 1.25rem; /* py-2.5 px-5 */
@@ -203,6 +204,10 @@
             font-weight: 500;
             border-radius: 0.375rem; /* rounded-md */
             transition: background-color 0.2s;
+        }
+        .day-view-controls .control-group-left {
+            display: flex;
+            gap: 0.75rem;
         }
     </style>
 </head>
@@ -264,9 +269,14 @@
                 <!-- Day's events will be populated here by JavaScript -->
             </div>
             <div class="day-view-controls">
-                <button id="addNewItemInDayViewButton" type="button" class="bg-green-500 hover:bg-green-600 text-white">
-                    <i class="fas fa-plus mr-2"></i>新增本日行程
-                </button>
+                <div class="control-group-left">
+                    <button id="addNewItemInDayViewButton" type="button" class="bg-green-500 hover:bg-green-600 text-white">
+                        <i class="fas fa-plus mr-2"></i>新增本日行程
+                    </button>
+                    <button id="resetDayButton" type="button" class="bg-red-600 hover:bg-red-700 text-white">
+                        <i class="fas fa-trash-restore mr-2"></i>重置本日資料
+                    </button>
+                </div>
                 <button id="backToCalendarViewButton" type="button" class="bg-slate-500 hover:bg-slate-600 text-white">
                     <i class="fas fa-calendar-alt mr-2"></i>返回月曆檢視
                 </button>
@@ -388,7 +398,7 @@
         searchResultsModal: null, searchResultsList: null, closeSearchResultsModalButton: null,
         // Day View Elements
         calendarViewSection: null, dayViewContainer: null, dayViewDateTitle: null, dayViewEventsList: null,
-        addNewItemInDayViewButton: null, backToCalendarViewButton: null
+        addNewItemInDayViewButton: null, backToCalendarViewButton: null, resetDayButton: null // Added resetDayButton
     };
 
     // Utils
@@ -407,7 +417,7 @@
             if (UIElements.customAlertBox) UIElements.customAlertBox.style.display = 'none';
         },
         getLocalStorageKey: (dataType, year = AppState.currentYear, month = AppState.currentMonth) => {
-            const version = "v3.28_day_view"; // Updated version
+            const version = "v3.29_day_reset"; // Updated version
             if (dataType === 'holidays_all') {
                return `personalItinerary_${version}_holidays_all`;
             }
@@ -440,7 +450,6 @@
                             location: item.location || "" 
                         }));
                     } else { 
-                        // Legacy: If an item is just a string, convert it to the new object structure
                         AppState.shifts[dateKey] = [{ 
                             id: Utils.generateUUID(), 
                             description: String(parsedShifts[dateKey]),
@@ -466,8 +475,6 @@
             } catch (e) { console.error("Error saving data:", e); Utils.showCustomAlert("儲存資料時發生錯誤。", "error"); }
         },
         clearCurrentMonthItinerary: () => { 
-            // This function should ideally use a custom confirmation modal instead of window.confirm
-            // For now, keeping the existing confirm for brevity of this specific change.
             const currentMonthPrefix = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}`;
             let itemsCleared = false;
             for (const dateKey in AppState.shifts) {
@@ -479,9 +486,9 @@
             AppState.notes = "";
             if (UIElements.scheduleNotesTextarea) UIElements.scheduleNotesTextarea.value = "";
             DataStorage.saveDataForCurrentMonth();
-            Calendar.render(); // Refresh calendar view
+            Calendar.render(); 
             if (AppState.currentView === 'day' && AppState.selectedDayForDayView && AppState.selectedDayForDayView.startsWith(currentMonthPrefix)) {
-                DayView.renderDayViewItems(AppState.selectedDayForDayView); // Refresh day view if it's the current month
+                DayView.renderDayViewItems(AppState.selectedDayForDayView); 
             }
             Utils.showCustomAlert(itemsCleared || AppState.notes === "" ? `已清除 ${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的行程表資料與備註。` : `${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的行程表無資料可清除。`, itemsCleared || AppState.notes === "" ? "success" : "info");
         }
@@ -498,17 +505,16 @@
             const parseDateFromICSLine = (line) => {
                 if (!line) return null;
                 const dateStrPart = line.substring(line.indexOf(':') + 1);
-                // Handle both VALUE=DATE:YYYYMMDD and YYYYMMDDTHHMMSSZ formats
                 const actualDateStr = dateStrPart.includes('VALUE=DATE:') ? dateStrPart.substring('VALUE=DATE:'.length) : dateStrPart;
-                if (actualDateStr.length < 8) return null; // Must have at least YYYYMMDD
+                if (actualDateStr.length < 8) return null; 
                 const year = parseInt(actualDateStr.substring(0, 4));
-                const month = parseInt(actualDateStr.substring(4, 6)) - 1; // Month is 0-indexed
+                const month = parseInt(actualDateStr.substring(4, 6)) - 1; 
                 const day = parseInt(actualDateStr.substring(6, 8));
 
                 if (isNaN(year) || isNaN(month) || isNaN(day) || month < 0 || month > 11 || day < 1 || day > 31) {
                      console.warn("Invalid date parsed from ICS:", actualDateStr); return null;
                 }
-                return new Date(Date.UTC(year, month, day)); // Use UTC to avoid timezone issues with dates
+                return new Date(Date.UTC(year, month, day)); 
             };
 
             const formatDateToKey = (dateObj) => {
@@ -527,20 +533,15 @@
                     if (inEvent && currentEvent.DTSTART_val && currentEvent.SUMMARY_val) {
                         let startDate = currentEvent.DTSTART_val;
                         let endDate = currentEvent.DTEND_val;
-
-                        // If DTEND is not present or is same as DTSTART (for all-day events), treat as single day event
-                        // ICS standard: For an all-day event, DTEND is often the start of the next day.
-                        // We want to include the start day.
                         if (!endDate || endDate.getTime() <= startDate.getTime()) {
                             const formattedDate = formatDateToKey(startDate);
                             if (formattedDate) newHolidays[formattedDate] = currentEvent.SUMMARY_val;
                         } else {
-                            // For multi-day events, iterate from DTSTART up to, but not including, DTEND
                             let currentDate = new Date(startDate.getTime());
-                            while (currentDate.getTime() < endDate.getTime()) { // Loop while current is before end
+                            while (currentDate.getTime() < endDate.getTime()) { 
                                 const formattedDate = formatDateToKey(currentDate);
                                 if (formattedDate) newHolidays[formattedDate] = currentEvent.SUMMARY_val;
-                                currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Move to next day
+                                currentDate.setUTCDate(currentDate.getUTCDate() + 1); 
                             }
                         }
                     }
@@ -569,14 +570,14 @@
                 try {
                     const importedHolidays = HolidayImporter.parseICS(e.target.result);
                     if (Object.keys(importedHolidays).length > 0) {
-                        AppState.holidays = { ...AppState.holidays, ...importedHolidays }; // Merge with existing
-                        DataStorage.saveDataForCurrentMonth(); // Save all holidays
+                        AppState.holidays = { ...AppState.holidays, ...importedHolidays }; 
+                        DataStorage.saveDataForCurrentMonth(); 
                         Calendar.render();
                         if (AppState.currentView === 'day' && AppState.selectedDayForDayView) {
                             DayView.renderDayViewItems(AppState.selectedDayForDayView);
                         }
                         Utils.showCustomAlert(`成功匯入 ${Object.keys(importedHolidays).length} 個假期。`, "success");
-                        fileInput.value = ""; // Clear file input
+                        fileInput.value = ""; 
                     } else {
                         Utils.showCustomAlert("未在檔案中找到有效的假期事件。", "info");
                         fileInput.value = "";
@@ -603,7 +604,7 @@
             const firstDayOfMonth = new Date(AppState.currentYear, AppState.currentMonth, 1);
             const lastDayOfMonth = new Date(AppState.currentYear, AppState.currentMonth + 1, 0);
             const daysInMonth = lastDayOfMonth.getDate();
-            const dayOfWeek = firstDayOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
+            const dayOfWeek = firstDayOfMonth.getDay(); 
             
             UIElements.monthYearDisplay.textContent = `${AppState.currentYear}年 ${AppState.currentMonth + 1}月`;
 
@@ -615,7 +616,7 @@
                 UIElements.calendarGrid.appendChild(dayHeader);
             });
 
-            for (let i = 0; i < dayOfWeek; i++) { // Blank cells for days before the 1st
+            for (let i = 0; i < dayOfWeek; i++) { 
                 const blankCell = document.createElement('div');
                 blankCell.className = 'calendar-day border border-slate-200 bg-slate-50 rounded-md';
                 UIElements.calendarGrid.appendChild(blankCell);
@@ -645,7 +646,7 @@
                 contentWrapper.className = 'day-content-wrapper';
 
                 const itineraryItemsForDay = AppState.shifts[dateStr] || [];
-                dayCell.classList.remove('filtered-out'); // For potential future filtering
+                dayCell.classList.remove('filtered-out'); 
 
                 if (itineraryItemsForDay.length > 0) {
                     const firstItem = itineraryItemsForDay[0];
@@ -656,23 +657,21 @@
                         displayText += (typeof marked !== 'undefined' && marked.parse) ? marked.parse(firstItem.description || "").trim().replace(/<p>|<\/p>/g, "") : (firstItem.description || "").trim();
                     } catch (e) { displayText += firstItem.description || ""; }
                     itemDiv.innerHTML = displayText;
-                    itemDiv.title = firstItem.description; // Full description on hover
+                    itemDiv.title = firstItem.description; 
                     contentWrapper.appendChild(itemDiv);
 
                     if (itineraryItemsForDay.length > 1) {
                         const itemCountSpan = document.createElement('span');
                         itemCountSpan.className = 'itinerary-item-count';
                         itemCountSpan.textContent = `+${itineraryItemsForDay.length - 1}`;
-                        dayCell.appendChild(itemCountSpan); // Append to dayCell directly for positioning
+                        dayCell.appendChild(itemCountSpan); 
                     }
                 }
                 
                 dayCell.addEventListener('click', (event) => {
-                     // If clicked on item summary or count, open modal for that day (legacy behavior or quick edit)
                     if (event.target.closest('.itinerary-item-display') || event.target.closest('.itinerary-item-count')) {
-                        UI.openItineraryItemModal(dateStr); // Opens modal for managing items of this day
+                        UI.openItineraryItemModal(dateStr); 
                     } else {
-                        // Clicked on the day cell background or day number, open Day View
                         DayView.openDayView(dateStr);
                     }
                 });
@@ -683,17 +682,17 @@
 
                 if (holidayName) {
                     const holidaySpan = document.createElement('div');
-                    holidaySpan.textContent = holidayName.charAt(0); // Show first char, full name on title
+                    holidaySpan.textContent = holidayName.charAt(0); 
                     holidaySpan.title = holidayName;
                     holidaySpan.className = 'holiday-info text-red-600 font-semibold';
-                    contentWrapper.appendChild(holidaySpan); // Append to content wrapper
+                    contentWrapper.appendChild(holidaySpan); 
                 }
                 UIElements.calendarGrid.appendChild(dayCell);
             }
 
             const totalCells = dayOfWeek + daysInMonth;
             const remainingCells = (7 - (totalCells % 7)) % 7;
-            for (let i = 0; i < remainingCells; i++) { // Blank cells after last day
+            for (let i = 0; i < remainingCells; i++) { 
                 const blankCell = document.createElement('div');
                 blankCell.className = 'calendar-day border border-slate-200 bg-slate-50 rounded-md';
                 UIElements.calendarGrid.appendChild(blankCell);
@@ -701,9 +700,9 @@
         },
         changeMonth: (offset) => { 
             if (UIElements.scheduleNotesTextarea) {
-                AppState.notes = UIElements.scheduleNotesTextarea.value; // Save notes for the *previous* month
+                AppState.notes = UIElements.scheduleNotesTextarea.value; 
             }
-            DataStorage.saveDataForCurrentMonth(); // Save shifts and notes of the month we are leaving
+            DataStorage.saveDataForCurrentMonth(); 
 
             AppState.currentMonth += offset;
             if (AppState.currentMonth < 0) {
@@ -713,7 +712,7 @@
                 AppState.currentMonth = 0;
                 AppState.currentYear++;
             }
-            DataStorage.loadDataForCurrentMonth(); // Load data for the *new* month
+            DataStorage.loadDataForCurrentMonth(); 
             Calendar.render();
         }
     };
@@ -723,35 +722,29 @@
         parseTextToIntermediateData: (text, inputYear, inputMonth_1_indexed) => {
             const lines = text.split('\n').map(line => line.trim());
             let yearToUse = inputYear;
-            let monthToUse_0_indexed = inputMonth_1_indexed !== null ? inputMonth_1_indexed - 1 : null; // 0-indexed for JS Date
+            let monthToUse_0_indexed = inputMonth_1_indexed !== null ? inputMonth_1_indexed - 1 : null; 
             let tempShifts = {};
             let tempNotesFromParser = "";
 
-            // Attempt to find a year/month declaration in the text first
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                // Matches "YYYY年MM月" or "YY年MM月" (ROC or AD short)
                 const yearMonthMatch = line.match(/(\d+)\s*年\s*(\d+)\s*月/);
                 if (yearMonthMatch) {
                     let parsedYearFromText = parseInt(yearMonthMatch[1]);
-                    // Heuristic for ROC year: if < 200 and > 90, assume ROC and convert
-                    if (parsedYearFromText < 200 && parsedYearFromText > 90) parsedYearFromText += 1911; // Convert ROC to AD
+                    if (parsedYearFromText < 200 && parsedYearFromText > 90) parsedYearFromText += 1911; 
                     yearToUse = parsedYearFromText;
-                    monthToUse_0_indexed = parseInt(yearMonthMatch[2]) - 1; // Convert to 0-indexed
-                    lines.splice(i, 1); i--; // Remove this line and adjust index
-                    break; // Found year/month, stop searching
+                    monthToUse_0_indexed = parseInt(yearMonthMatch[2]) - 1; 
+                    lines.splice(i, 1); i--; 
+                    break; 
                 }
             }
             
-            // If no year/month found in text, use provided or current AppState
             if (yearToUse === null || yearToUse === undefined || isNaN(yearToUse)) yearToUse = AppState.currentYear;
             if (monthToUse_0_indexed === null || monthToUse_0_indexed === undefined || isNaN(monthToUse_0_indexed)) monthToUse_0_indexed = AppState.currentMonth;
 
 
             lines.forEach(line => {
                 if (line.trim() === "") return;
-
-                // Matches "MM/DD content" or "DD content"
                 const dateMatch = line.match(/^(\d{1,2}(?:\/\d{1,2})?)\s+(.+)/);
                 if (dateMatch) {
                     const datePart = dateMatch[1];
@@ -760,10 +753,10 @@
 
                     if (datePart.includes('/')) {
                         [month, day] = datePart.split('/').map(Number);
-                        month -= 1; // Convert to 0-indexed for consistency
+                        month -= 1; 
                     } else {
                         day = parseInt(datePart);
-                        month = monthToUse_0_indexed; // Use the determined month
+                        month = monthToUse_0_indexed; 
                     }
 
                     if (!isNaN(day) && day >= 1 && day <= 31 && !isNaN(month) && month >=0 && month <=11) {
@@ -771,11 +764,9 @@
                         if (!tempShifts[dateStr]) tempShifts[dateStr] = [];
                         tempShifts[dateStr].push({ id: Utils.generateUUID(), description: description, startTime: "", endTime: "", tags: [], location: "" });
                     } else { 
-                        // If date parsing fails, treat as a note
                         if (!tempNotesFromParser) tempNotesFromParser = line; else tempNotesFromParser += "\n" + line;
                     }
                 } else { 
-                    // Line doesn't start with a date, treat as a note
                     if (!tempNotesFromParser) tempNotesFromParser = line; else tempNotesFromParser += "\n" + line;
                 }
             });
@@ -783,34 +774,30 @@
             return { success, parsedYear: yearToUse, parsedMonth: monthToUse_0_indexed, parsedShifts: tempShifts, parsedNotes: tempNotesFromParser };
         },
         applyParsedDataToAppState: (year, month_0_indexed, shiftsToApply, notesToApply) => {
-            // Switch AppState to the parsed month/year if different
             AppState.currentYear = year;
             AppState.currentMonth = month_0_indexed;
             
-            // Clear existing shifts for the target month before applying new ones
             const targetMonthPrefix = `${year}-${String(month_0_indexed + 1).padStart(2, '0')}`;
             for (const dateKey in AppState.shifts) {
                 if (dateKey.startsWith(targetMonthPrefix)) {
                     delete AppState.shifts[dateKey];
                 }
             }
-            // Apply new shifts
             for(const dateKey in shiftsToApply) {
-                if (dateKey.startsWith(targetMonthPrefix)) { // Ensure applying to correct month
+                if (dateKey.startsWith(targetMonthPrefix)) { 
                     if (!AppState.shifts[dateKey]) AppState.shifts[dateKey] = [];
                     AppState.shifts[dateKey].push(...shiftsToApply[dateKey]);
                 }
             }
 
-            // Append notes if any
             if (notesToApply && notesToApply.trim() !== "") {
                 if (AppState.notes) AppState.notes += "\n" + notesToApply;
                 else AppState.notes = notesToApply;
             }
             
             if (UIElements.scheduleNotesTextarea) UIElements.scheduleNotesTextarea.value = AppState.notes;
-            DataStorage.saveDataForCurrentMonth(); // Save all data for the (potentially new) current month
-            Calendar.render(); // Re-render calendar for the new month/year
+            DataStorage.saveDataForCurrentMonth(); 
+            Calendar.render(); 
             Utils.showCustomAlert(`行程表已成功匯入/更新 ${year}年${month_0_indexed + 1}月 的資料！`, "success");
         },
         triggerImportScheduleFromPastedText: () => {
@@ -820,7 +807,6 @@
                 Utils.showCustomAlert("請先在文字區域貼上行程表的內容。", "info");
                 return;
             }
-            // Pass current AppState month/year as default if not found in text
             const intermediateData = ScheduleParser.parseTextToIntermediateData(text, AppState.currentYear, AppState.currentMonth + 1);
 
             if (intermediateData.success) {
@@ -828,7 +814,7 @@
                     intermediateData.parsedYear, intermediateData.parsedMonth,
                     intermediateData.parsedShifts, intermediateData.parsedNotes
                 );
-                 UIElements.fullSchedulePasteArea.value = ""; // Clear textarea after import
+                 UIElements.fullSchedulePasteArea.value = ""; 
             } else {
                  Utils.showCustomAlert("未能在貼上的文字中找到任何有效的行程表資料。", "error");
             }
@@ -888,6 +874,7 @@
             UIElements.dayViewEventsList = document.getElementById('dayViewEventsList');
             UIElements.addNewItemInDayViewButton = document.getElementById('addNewItemInDayViewButton');
             UIElements.backToCalendarViewButton = document.getElementById('backToCalendarViewButton');
+            UIElements.resetDayButton = document.getElementById('resetDayButton'); // Cache reset button
         },
         setActiveView: (view) => { 
             AppState.currentView = view;
@@ -895,40 +882,37 @@
                 if (UIElements.calendarViewSection) UIElements.calendarViewSection.classList.remove('hidden');
                 if (UIElements.dayViewContainer) UIElements.dayViewContainer.classList.add('hidden');
                 if (UIElements.mainTitle) UIElements.mainTitle.textContent = "個人行程表"; 
-                Calendar.render(); // Ensure calendar is rendered
+                Calendar.render(); 
             } else if (view === 'day') {
                 if (UIElements.calendarViewSection) UIElements.calendarViewSection.classList.add('hidden');
                 if (UIElements.dayViewContainer) UIElements.dayViewContainer.classList.remove('hidden');
                  if (UIElements.mainTitle) UIElements.mainTitle.textContent = "本日行程"; 
-                // DayView.renderDayViewItems will be called by DayView.openDayView
             }
         },
         openItineraryItemModal: (dateStr, itemIdToEdit = null) => { 
             if (!UIElements.itineraryItemModal || !UIElements.itineraryItemsList || !UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
             
-            AppState.selectedDateForAssignment = dateStr; // Date for which item is being added/edited
-            UIElements.itineraryItemsList.dataset.date = dateStr; // Store date on the list for context
+            AppState.selectedDateForAssignment = dateStr; 
+            UIElements.itineraryItemsList.dataset.date = dateStr; 
             
             const modalTitle = UIElements.itineraryItemModal.querySelector('#itineraryItemModalTitle');
             if (modalTitle) modalTitle.textContent = `編輯 ${dateStr} 的行程項目`;
 
-            // Clear form fields
             UIElements.newItineraryItemText.value = '';
             UIElements.itineraryStartTime.value = '';
             UIElements.itineraryEndTime.value = '';
             UIElements.itineraryItemTags.value = ''; 
             UIElements.itineraryItemLocation.value = '';
             UIElements.addOrUpdateItineraryItemButton.textContent = '新增項目';
-            AppState.editingItemId = null; // Reset editing ID
+            AppState.editingItemId = null; 
 
             if (itemIdToEdit) {
                 const itemsOnDate = AppState.shifts[dateStr] || [];
                 const item = itemsOnDate.find(i => i.id === itemIdToEdit);
                 if (item) {
-                    UI.prepareEditItineraryItem(dateStr, item); // This will set AppState.editingItemId
+                    UI.prepareEditItineraryItem(dateStr, item); 
                 }
             }
-            // Render all items for the date in the modal's list (useful if managing multiple items for a day)
             UI.renderItineraryItemsInModal(dateStr); 
             
             UIElements.itineraryItemModal.style.display = 'flex';
@@ -936,19 +920,14 @@
         },
         closeItineraryItemModal: () => { 
             if (UIElements.itineraryItemModal) UIElements.itineraryItemModal.style.display = 'none';
-            // AppState.selectedDateForAssignment = null; // Keep this, might be needed if modal was opened from Day View
-            // AppState.editingItemId = null; // Keep this, might be needed
             
-            // Don't clear form fields here, they are cleared on open
-            // If Day View is active and a date is selected for it, refresh Day View
             if (AppState.currentView === 'day' && AppState.selectedDayForDayView) {
                 DayView.renderDayViewItems(AppState.selectedDayForDayView);
             }
-            // Calendar is usually re-rendered by the action that led to modal closing (add/update/delete)
         },
         renderItineraryItemsInModal: (dateStr) => { 
             if (!UIElements.itineraryItemsList) return;
-            UIElements.itineraryItemsList.innerHTML = ''; // Clear previous items
+            UIElements.itineraryItemsList.innerHTML = ''; 
             const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59"));
 
 
@@ -959,7 +938,7 @@
 
             items.forEach(item => {
                 const itemDiv = document.createElement('div');
-                itemDiv.className = 'itinerary-modal-item'; // Existing style for modal items
+                itemDiv.className = 'itinerary-modal-item'; 
                 itemDiv.setAttribute('draggable', true); 
                 itemDiv.dataset.itemId = item.id; 
                 
@@ -1014,7 +993,7 @@
                 buttonGroup.appendChild(editBtn);
 
                 const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '&times;'; // Using &times; for delete icon
+                deleteBtn.innerHTML = '&times;'; 
                 deleteBtn.className = 'delete-btn rounded';
                 deleteBtn.title = '刪除此項目';
                 deleteBtn.onclick = (e) => { e.stopPropagation(); UI.removeItineraryItem(dateStr, item.id); };
@@ -1028,7 +1007,7 @@
             if (!UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
             
             AppState.editingItemId = itemToEdit.id; 
-            AppState.selectedDateForAssignment = dateStr; // Ensure this is set for context
+            AppState.selectedDateForAssignment = dateStr; 
             
             UIElements.newItineraryItemText.value = itemToEdit.description;
             UIElements.itineraryStartTime.value = itemToEdit.startTime || "";
@@ -1038,8 +1017,6 @@
             
             UIElements.addOrUpdateItineraryItemButton.textContent = '更新項目'; 
             UIElements.newItineraryItemText.focus(); 
-            // The list of items in the modal (UIElements.itineraryItemsList) is already rendered by openItineraryItemModal.
-            // No need to re-render it here, just fill the form.
         },
         addOrUpdateItineraryItem: () => { 
             if (!AppState.selectedDateForAssignment || !UIElements.newItineraryItemText || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
@@ -1058,7 +1035,7 @@
             const dateStr = AppState.selectedDateForAssignment;
             if (!AppState.shifts[dateStr]) AppState.shifts[dateStr] = [];
 
-            if (AppState.editingItemId) { // Update existing item
+            if (AppState.editingItemId) { 
                 const itemIndex = AppState.shifts[dateStr].findIndex(item => item.id === AppState.editingItemId);
                 if (itemIndex > -1) {
                     AppState.shifts[dateStr][itemIndex].description = description;
@@ -1068,27 +1045,23 @@
                     AppState.shifts[dateStr][itemIndex].location = location;
                     Utils.showCustomAlert("行程項目已更新。", "success", 1500);
                 }
-                AppState.editingItemId = null; // Reset editing ID
+                AppState.editingItemId = null; 
                 UIElements.addOrUpdateItineraryItemButton.textContent = '新增項目';
-            } else { // Add new item
+            } else { 
                 const newItem = { id: Utils.generateUUID(), description: description, startTime: startTime, endTime: endTime, tags: tags, location: location };
                 AppState.shifts[dateStr].push(newItem);
                 Utils.showCustomAlert("行程項目已新增。", "success", 1500);
             }
 
             DataStorage.saveDataForCurrentMonth();
-            
-            // Refresh the list in the modal itself
             UI.renderItineraryItemsInModal(dateStr); 
             
-            // Refresh Day View if it's active for this date
             if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
                 DayView.renderDayViewItems(dateStr);
             }
-            Calendar.render(); // Always refresh calendar for counts/summary
+            Calendar.render(); 
 
-            // Clear form for next new item (if not editing)
-            if (!AppState.editingItemId) { // Only clear if it was an "add" operation
+            if (!AppState.editingItemId) { 
                 UIElements.newItineraryItemText.value = ''; 
                 UIElements.itineraryStartTime.value = '';
                 UIElements.itineraryEndTime.value = '';
@@ -1100,24 +1073,21 @@
         removeItineraryItem: (dateStr, itemId) => { 
             if (!AppState.shifts[dateStr]) return;
             AppState.shifts[dateStr] = AppState.shifts[dateStr].filter(item => item.id !== itemId);
-            if (AppState.shifts[dateStr].length === 0) delete AppState.shifts[dateStr]; // Remove date key if no items left
+            if (AppState.shifts[dateStr].length === 0) delete AppState.shifts[dateStr]; 
 
             DataStorage.saveDataForCurrentMonth();
             
-            // Refresh list in the modal if it's open for this date
             if (UIElements.itineraryItemModal.style.display === 'flex' && UIElements.itineraryItemsList.dataset.date === dateStr) {
                 UI.renderItineraryItemsInModal(dateStr);
             }
             
-            // Refresh Day View if it's active for this date
             if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
                 DayView.renderDayViewItems(dateStr);
             }
-            Calendar.render(); // Always refresh calendar
+            Calendar.render(); 
 
             Utils.showCustomAlert("行程項目已刪除。", "success", 1500);
 
-            // If the deleted item was being edited in the form, clear the form
             if (AppState.editingItemId === itemId) {
                 AppState.editingItemId = null;
                 UIElements.newItineraryItemText.value = '';
@@ -1132,15 +1102,15 @@
         
         showTooltip: (event, dateStr) => { 
             if (!UIElements.dayTooltip || !UIElements.dayTooltipContent) return;
-            clearTimeout(AppState.tooltipTimeout); // Clear any existing hide timeout
+            clearTimeout(AppState.tooltipTimeout); 
 
             const items = AppState.shifts[dateStr] || [];
-            if (items.length === 0 && !AppState.holidays[dateStr]) { // No items and no holiday, hide tooltip
-                UI.hideTooltip(0); // Hide immediately
+            if (items.length === 0 && !AppState.holidays[dateStr]) { 
+                UI.hideTooltip(0); 
                 return;
             }
 
-            UIElements.dayTooltipContent.innerHTML = ''; // Clear previous content
+            UIElements.dayTooltipContent.innerHTML = ''; 
 
             if (AppState.holidays[dateStr]) {
                 const holidayDiv = document.createElement('div');
@@ -1150,7 +1120,7 @@
             }
 
             if (items.length > 0) {
-                items.slice(0, 3).forEach(item => { // Show max 3 items in tooltip for brevity
+                items.slice(0, 3).forEach(item => { 
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'tooltip-item';
                     let itemHTML = ""; 
@@ -1177,41 +1147,37 @@
                     moreItemsDiv.textContent = `還有 ${items.length - 3} 個項目...`;
                     UIElements.dayTooltipContent.appendChild(moreItemsDiv);
                 }
-            } else if (!AppState.holidays[dateStr]) { // Only show "no items" if also no holiday
+            } else if (!AppState.holidays[dateStr]) { 
                  const noItemsDiv = document.createElement('div');
                  noItemsDiv.className = 'tooltip-no-items';
                  noItemsDiv.textContent = '本日無行程項目';
                  UIElements.dayTooltipContent.appendChild(noItemsDiv);
             }
             
-            // Position and show tooltip
             const targetCell = event.currentTarget;
             const cellRect = targetCell.getBoundingClientRect();
             const tooltip = UIElements.dayTooltip;
-            tooltip.style.display = 'block'; // Show it first to get its dimensions
+            tooltip.style.display = 'block'; 
 
             const tooltipRect = tooltip.getBoundingClientRect();
-            let top = cellRect.bottom + window.scrollY + 5; // Below the cell
-            let left = cellRect.left + window.scrollX;       // Align with left of cell
+            let top = cellRect.bottom + window.scrollY + 5; 
+            let left = cellRect.left + window.scrollX;       
 
-            // Adjust if tooltip goes off-screen
             if (left + tooltipRect.width > window.innerWidth) {
-                left = window.innerWidth - tooltipRect.width - 10; // Move left
+                left = window.innerWidth - tooltipRect.width - 10; 
             }
             if (top + tooltipRect.height > window.innerHeight && cellRect.top > tooltipRect.height + 5) {
-                // If not enough space below and enough space above, show above
                 top = cellRect.top + window.scrollY - tooltipRect.height - 5;
             } else if (top + tooltipRect.height > window.innerHeight) {
-                 // Not enough space below and not enough above, stick to bottom of viewport
                  top = window.innerHeight - tooltipRect.height - 10;
             }
-            if (left < 0) left = 5; // Ensure not off-left
-            if (top < 0) top = 5;   // Ensure not off-top
+            if (left < 0) left = 5; 
+            if (top < 0) top = 5;   
 
             tooltip.style.top = `${top}px`;
             tooltip.style.left = `${left}px`;
         },
-        hideTooltip: (delay = 100) => { // Added delay parameter
+        hideTooltip: (delay = 100) => { 
             if (AppState.tooltipTimeout) clearTimeout(AppState.tooltipTimeout);
             AppState.tooltipTimeout = setTimeout(() => {
                 if (UIElements.dayTooltip) UIElements.dayTooltip.style.display = 'none';
@@ -1250,19 +1216,12 @@
                         UI.closeSearchResultsModal();
                         const [year, month, day] = result.date.split('-').map(Number);
                         
-                        // Navigate to the month of the search result
                         if (AppState.currentYear !== year || AppState.currentMonth !== month -1) {
                             AppState.currentYear = year;
                             AppState.currentMonth = month - 1;
-                            DataStorage.loadDataForCurrentMonth(); // Load data for the new month
+                            DataStorage.loadDataForCurrentMonth(); 
                         }
-                        // Open Day View for the search result date
                         DayView.openDayView(result.date);
-                        // Optionally, scroll to and highlight the item in Day View (more complex)
-                        // For now, just opening Day View is a good step.
-                        // Or, if preferred, open the item edit modal directly:
-                        // Calendar.render(); // Render the correct month
-                        // UI.openItineraryItemModal(result.date, result.item.id); 
                     };
                     UIElements.searchResultsList.appendChild(itemEl);
                 });
@@ -1278,7 +1237,7 @@
     const DayView = {
         openDayView: (dateStr) => {
             AppState.selectedDayForDayView = dateStr;
-            UI.setActiveView('day'); // This will hide calendar and show day view container
+            UI.setActiveView('day'); 
             if (UIElements.dayViewDateTitle) {
                 const [year, month, day] = dateStr.split('-');
                 UIElements.dayViewDateTitle.textContent = `${year}年${parseInt(month)}月${parseInt(day)}日 行程詳情`;
@@ -1287,26 +1246,26 @@
             if (UIElements.addNewItemInDayViewButton) {
                 UIElements.addNewItemInDayViewButton.onclick = () => UI.openItineraryItemModal(dateStr);
             }
+            // Reset Day button listener is set in DOMContentLoaded
         },
         closeDayView: () => {
             UI.setActiveView('calendar');
             AppState.selectedDayForDayView = null;
-            // Calendar.render() is called by setActiveView('calendar')
         },
         renderDayViewItems: (dateStr) => {
             if (!UIElements.dayViewEventsList) return;
             UIElements.dayViewEventsList.innerHTML = '';
-            const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59")); // Sort by time
+            const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59")); 
 
             if (AppState.holidays[dateStr]) {
                  const holidayDiv = document.createElement('div');
-                 holidayDiv.className = 'day-view-item bg-red-50 border-red-200'; // Special styling for holiday
+                 holidayDiv.className = 'day-view-item bg-red-50 border-red-200'; 
                  holidayDiv.innerHTML = `<div class="item-details"><p class="item-description font-semibold text-red-700"><i class="fas fa-star mr-2"></i>假期: ${AppState.holidays[dateStr]}</p></div>`;
                  UIElements.dayViewEventsList.appendChild(holidayDiv);
             }
 
             if (items.length === 0) {
-                if (!AppState.holidays[dateStr]) { // Only show "no items" if no holiday either
+                if (!AppState.holidays[dateStr]) { 
                     UIElements.dayViewEventsList.innerHTML = '<p class="day-view-no-items">本日無行程項目。</p>';
                 }
                 return;
@@ -1327,7 +1286,7 @@
                     detailsDiv.appendChild(timeP);
                 }
 
-                const descriptionP = document.createElement('div'); // Use div for innerHTML from Markdown
+                const descriptionP = document.createElement('div'); 
                 descriptionP.className = 'item-description';
                 try {
                     descriptionP.innerHTML = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(item.description || "") : (item.description || "");
@@ -1366,16 +1325,46 @@
                 deleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i>刪除';
                 deleteBtn.className = 'delete-btn';
                 deleteBtn.onclick = () => {
-                    // Ideally, replace with a custom confirmation modal
                     if (confirm(`確定要刪除此行程項目嗎？\n"${item.description.substring(0,50)}..."`)) {
                         UI.removeItineraryItem(dateStr, item.id);
-                        // DayView.renderDayViewItems(dateStr); // removeItineraryItem already calls this if in day view
                     }
                 };
                 actionsDiv.appendChild(deleteBtn);
                 itemDiv.appendChild(actionsDiv);
                 UIElements.dayViewEventsList.appendChild(itemDiv);
             });
+        },
+        clearDay: () => {
+            const dateToClear = AppState.selectedDayForDayView;
+            if (!dateToClear) {
+                Utils.showCustomAlert("沒有選定的日期可供清除。", "info");
+                return;
+            }
+
+            // TODO: Replace with a custom modal confirmation
+            if (confirm(`您確定要清除 ${dateToClear} 的所有行程項目和假期標記嗎？此操作無法復原。`)) {
+                let itemsCleared = false;
+                let holidayCleared = false;
+
+                if (AppState.shifts[dateToClear] && AppState.shifts[dateToClear].length > 0) {
+                    delete AppState.shifts[dateToClear];
+                    itemsCleared = true;
+                }
+                if (AppState.holidays[dateToClear]) {
+                    delete AppState.holidays[dateToClear];
+                    holidayCleared = true;
+                }
+
+                if (itemsCleared || holidayCleared) {
+                    DataStorage.saveDataForCurrentMonth(); // Save changes (holidays are global, shifts might be too if not careful with key)
+                                                       // Since holidays are stored under 'holidays_all', saving current month data is fine.
+                    DayView.renderDayViewItems(dateToClear); // Refresh the day view
+                    Calendar.render(); // Refresh the calendar view
+                    Utils.showCustomAlert(`${dateToClear} 的資料已成功清除。`, "success");
+                } else {
+                    Utils.showCustomAlert(`${dateToClear} 沒有可清除的資料。`, "info");
+                }
+            }
         }
     };
 
@@ -1383,7 +1372,7 @@
     // DragDrop
     const DragDrop = { 
         init: () => {
-            const list = UIElements.itineraryItemsList; // Drag drop is for the modal list
+            const list = UIElements.itineraryItemsList; 
             if (list) { 
                 list.addEventListener('dragstart', DragDrop.handleDragStart);
                 list.addEventListener('dragover', DragDrop.handleDragOver);
@@ -1396,40 +1385,32 @@
             if (targetItem && targetItem.dataset.itemId) {
                 AppState.draggedItemId = targetItem.dataset.itemId;
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', AppState.draggedItemId); // Required for Firefox
-                setTimeout(() => targetItem.classList.add('dragging'), 0); // Style dragging item
+                e.dataTransfer.setData('text/plain', AppState.draggedItemId); 
+                setTimeout(() => targetItem.classList.add('dragging'), 0); 
             } else {
-                e.preventDefault(); // Not a draggable item
+                e.preventDefault(); 
             }
         },
         handleDragOver: (e) => {
-            e.preventDefault(); // Allow drop
+            e.preventDefault(); 
             e.dataTransfer.dropEffect = 'move';
             const list = UIElements.itineraryItemsList;
             if(!list) return;
 
             const draggingItem = list.querySelector('.dragging');
             if (!draggingItem) return;
-
-            // Get all other items (siblings)
             const siblings = [...list.querySelectorAll('.itinerary-modal-item:not(.dragging)')];
             
-            // Find the sibling to insert before
             let nextSibling = siblings.find(sibling => {
                 const rect = sibling.getBoundingClientRect();
                 return e.clientY < rect.top + rect.height / 2;
             });
             
-            // Remove previous drag-over class
             siblings.forEach(s => s.classList.remove('drag-over'));
             
-            // Add drag-over class to the appropriate sibling or to the list for appending
             if (nextSibling) {
                 nextSibling.classList.add('drag-over');
-            } else if (siblings.length > 0) {
-                // If no nextSibling and there are siblings, means it's after the last one
-                // No visual cue for "after last" needed if appending is default
-            }
+            } 
         },
         handleDrop: (e) => {
             e.preventDefault();
@@ -1442,9 +1423,7 @@
             const draggedItemIndex = items.findIndex(item => item.id === AppState.draggedItemId);
             if (draggedItemIndex === -1) return;
 
-            const draggedItem = items.splice(draggedItemIndex, 1)[0]; // Remove item
-
-            // Determine target index
+            const draggedItem = items.splice(draggedItemIndex, 1)[0]; 
             let targetIndex;
             const targetItemElement = e.target.closest('.itinerary-modal-item:not(.dragging)');
 
@@ -1452,31 +1431,28 @@
                 const targetItemId = targetItemElement.dataset.itemId;
                 targetIndex = items.findIndex(item => item.id === targetItemId);
                 const rect = targetItemElement.getBoundingClientRect();
-                // If dropping on the lower half of the target, insert after it
                 if (e.clientY >= rect.top + rect.height / 2) {
                     targetIndex++;
                 }
             } else {
-                // If not dropped on a specific item, or dropped on empty space, append to end
-                // Or, more precisely, find where it should go based on Y position relative to all items
                 const list = UIElements.itineraryItemsList;
                 const siblings = list ? [...list.querySelectorAll('.itinerary-modal-item:not(.dragging)')] : [];
                 const nextSiblingElement = siblings.find(sibling => e.clientY < sibling.getBoundingClientRect().top + sibling.getBoundingClientRect().height / 2);
                 if (nextSiblingElement && nextSiblingElement.dataset.itemId) {
                     targetIndex = items.findIndex(item => item.id === nextSiblingElement.dataset.itemId);
                 } else {
-                    targetIndex = items.length; // Append to end
+                    targetIndex = items.length; 
                 }
             }
             
-            items.splice(targetIndex, 0, draggedItem); // Insert item at new position
+            items.splice(targetIndex, 0, draggedItem); 
 
             AppState.shifts[dateStr] = items;
             DataStorage.saveDataForCurrentMonth();
-            UI.renderItineraryItemsInModal(dateStr); // Re-render modal list
-            Calendar.render(); // Re-render calendar for summary
+            UI.renderItineraryItemsInModal(dateStr); 
+            Calendar.render(); 
             if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
-                DayView.renderDayViewItems(dateStr); // Re-render day view if active
+                DayView.renderDayViewItems(dateStr); 
             }
         },
         handleDragEnd: (e) => {
@@ -1495,9 +1471,6 @@
     const Exporter = { 
         exportItineraryToICS: () => {
             let eventsToExport = [];
-            // Export all events from AppState.shifts, not just current month
-            // Or, provide an option to export current month vs all data
-            // For now, let's stick to current month as per original logic for simplicity
             const currentMonthPrefix = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}`;
 
             for (const dateStr in AppState.shifts) {
@@ -1507,7 +1480,7 @@
                         eventsToExport.push({ 
                             date: dateStr, 
                             description: item.description,
-                            id: item.id, // Use item's own ID for UID
+                            id: item.id, 
                             startTime: item.startTime,
                             endTime: item.endTime,
                             tags: item.tags,
@@ -1525,44 +1498,41 @@
             let icsEvents = [
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
-                `PRODID:-//PersonalItineraryTool//${Utils.getLocalStorageKey('').split('_')[1]}//ZH` // Use app version in PRODID
+                `PRODID:-//PersonalItineraryTool//${Utils.getLocalStorageKey('').split('_')[1]}//ZH` 
             ];
 
             eventsToExport.forEach(eventData => {
-                const dateParts = eventData.date.split('-'); // YYYY-MM-DD
-                if (dateParts.length !== 3) return; // Skip if date format is wrong
+                const dateParts = eventData.date.split('-'); 
+                if (dateParts.length !== 3) return; 
                 
-                const year = parseInt(dateParts[0]), month = parseInt(dateParts[1]) - 1, day = parseInt(dateParts[2]); // JS month is 0-indexed
+                const year = parseInt(dateParts[0]), month = parseInt(dateParts[1]) - 1, day = parseInt(dateParts[2]); 
                 
                 let dtStartStr, dtEndStr;
-                const baseDate = `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`; // YYYYMMDD format
+                const baseDate = `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`; 
 
                 if (eventData.startTime) {
-                    const startTimeStr = eventData.startTime.replace(':', '') + '00'; // HHMMSS
-                    dtStartStr = `DTSTART;TZID=Asia/Taipei:${baseDate}T${startTimeStr}`; // Assuming Taipei timezone, adjust if needed or make configurable
+                    const startTimeStr = eventData.startTime.replace(':', '') + '00'; 
+                    dtStartStr = `DTSTART;TZID=Asia/Taipei:${baseDate}T${startTimeStr}`; 
                     
                     if (eventData.endTime) {
                         const endTimeStr = eventData.endTime.replace(':', '') + '00';
                         dtEndStr = `DTEND;TZID=Asia/Taipei:${baseDate}T${endTimeStr}`;
                     } else { 
-                        // If no end time, make it a 1-hour event by default for timed events
                         const startHour = parseInt(eventData.startTime.split(':')[0]);
                         const startMinute = parseInt(eventData.startTime.split(':')[1]);
                         let endHour = startHour + 1;
                         let endMinute = startMinute;
-                        if (endHour >= 24) { endHour = 23; endMinute = 59; } // Cap at end of day
+                        if (endHour >= 24) { endHour = 23; endMinute = 59; } 
                         dtEndStr = `DTEND;TZID=Asia/Taipei:${baseDate}T${String(endHour).padStart(2, '0')}${String(endMinute).padStart(2, '0')}00`;
                     }
                 } else { 
-                    // All-day event
                     dtStartStr = `DTSTART;VALUE=DATE:${baseDate}`;
-                    // For all-day events, DTEND is typically the start of the next day
                     const nextDayDate = new Date(Date.UTC(year, month, day + 1));
                     dtEndStr = `DTEND;VALUE=DATE:${nextDayDate.getUTCFullYear()}${String(nextDayDate.getUTCMonth() + 1).padStart(2, '0')}${String(nextDayDate.getUTCDate()).padStart(2, '0')}`;
                 }
 
-                let eventSummary = eventData.description.split('\n')[0]; // First line as summary
-                let eventDescription = eventData.description; // Full description
+                let eventSummary = eventData.description.split('\n')[0]; 
+                let eventDescription = eventData.description; 
                 if (eventData.location) {
                     eventDescription += `\n地點: ${eventData.location}`;
                 }
@@ -1571,12 +1541,12 @@
                 }
 
                 icsEvents.push('BEGIN:VEVENT');
-                icsEvents.push(`UID:itinerary-${eventData.date}-${eventData.id}@personaltool.local`); // Unique ID for the event
-                icsEvents.push(`DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15)}Z`); // Creation timestamp
+                icsEvents.push(`UID:itinerary-${eventData.date}-${eventData.id}@personaltool.local`); 
+                icsEvents.push(`DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15)}Z`); 
                 icsEvents.push(dtStartStr);
                 icsEvents.push(dtEndStr);
-                icsEvents.push(`SUMMARY:${eventSummary.replace(/\n/g, "\\n")}`); // Escape newlines in summary
-                icsEvents.push(`DESCRIPTION:${eventDescription.replace(/\n/g, "\\n")}`); // Escape newlines in description
+                icsEvents.push(`SUMMARY:${eventSummary.replace(/\n/g, "\\n")}`); 
+                icsEvents.push(`DESCRIPTION:${eventDescription.replace(/\n/g, "\\n")}`); 
                 if (eventData.location) {
                     icsEvents.push(`LOCATION:${eventData.location.replace(/\n/g, "\\n")}`);
                 }
@@ -1594,7 +1564,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(link.href); // Clean up
+            URL.revokeObjectURL(link.href); 
             Utils.showCustomAlert("行程表已匯出為 .ics 檔案。", "success");
         }
     };
@@ -1610,7 +1580,6 @@
             }
 
             const results = [];
-            // Search across all years and months stored in AppState.shifts
             for (const dateStr in AppState.shifts) {
                 if (AppState.shifts.hasOwnProperty(dateStr)) {
                     const itemsOnDate = AppState.shifts[dateStr];
@@ -1625,15 +1594,12 @@
                         if (!match && item.tags && item.tags.some(tag => tag.toLowerCase().includes(query))) {
                             match = true;
                         }
-                        // Could also add date matching if query looks like a date
-
                         if (match) {
-                            results.push({ date: dateStr, item: { ...item } }); // Store a copy
+                            results.push({ date: dateStr, item: { ...item } }); 
                         }
                     });
                 }
             }
-            // Sort results by date (chronological)
             results.sort((a,b) => a.date.localeCompare(b.date));
             UI.openSearchResultsModal(results);
         }
@@ -1643,12 +1609,11 @@
     // Initialization
     document.addEventListener('DOMContentLoaded', () => {
         UI.cacheDOMElements();
-        if (UIElements.itineraryItemsList) { DragDrop.init(); } // Init drag-drop for modal item list
+        if (UIElements.itineraryItemsList) { DragDrop.init(); } 
         
-        DataStorage.loadDataForCurrentMonth(); // Load initial data
-        UI.setActiveView('calendar'); // Set initial view to calendar
+        DataStorage.loadDataForCurrentMonth(); 
+        UI.setActiveView('calendar'); 
 
-        // Event Listeners
         if (UIElements.saveNotesButton) {
             UIElements.saveNotesButton.addEventListener('click', () => {
                 if (UIElements.scheduleNotesTextarea) AppState.notes = UIElements.scheduleNotesTextarea.value;
@@ -1661,7 +1626,7 @@
         
         if (UIElements.saveItineraryButton) { 
             UIElements.saveItineraryButton.addEventListener('click', () => {
-                if (UIElements.scheduleNotesTextarea) AppState.notes = UIElements.scheduleNotesTextarea.value; // Ensure notes are captured
+                if (UIElements.scheduleNotesTextarea) AppState.notes = UIElements.scheduleNotesTextarea.value; 
                 DataStorage.saveDataForCurrentMonth();
                 Utils.showCustomAlert("行程表資料已儲存。", "success");
                 UI.closeManagementModal();
@@ -1669,7 +1634,6 @@
         }
         if (UIElements.clearItineraryButton) { 
             UIElements.clearItineraryButton.addEventListener('click', () => {
-                // TODO: Replace with a custom modal confirmation for better UX and to avoid `confirm`
                 if (confirm(`您確定要清除 ${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的所有行程表資料和備註嗎？此操作無法復原。`)) {
                     DataStorage.clearCurrentMonthItinerary();
                 }
@@ -1677,16 +1641,15 @@
         }
         if (UIElements.addOrUpdateItineraryItemButton) UIElements.addOrUpdateItineraryItemButton.addEventListener('click', UI.addOrUpdateItineraryItem);
         
-        if (UIElements.newItineraryItemText) { // Allow Enter to submit new item, Shift+Enter for newline
+        if (UIElements.newItineraryItemText) { 
              UIElements.newItineraryItemText.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault(); // Prevent default newline
+                    event.preventDefault(); 
                     UI.addOrUpdateItineraryItem();
                 }
             });
         }
 
-        // Search listeners
         if (UIElements.searchButton) UIElements.searchButton.addEventListener('click', Search.performSearch);
         if (UIElements.searchInput) {
             UIElements.searchInput.addEventListener('keypress', (event) => {
@@ -1697,29 +1660,26 @@
         }
         if (UIElements.closeSearchResultsModalButton) UIElements.closeSearchResultsModalButton.addEventListener('click', UI.closeSearchResultsModal);
 
-        // Day View listeners
         if (UIElements.backToCalendarViewButton) UIElements.backToCalendarViewButton.addEventListener('click', DayView.closeDayView);
-        // AddNewItemInDayViewButton listener is set in DayView.openDayView
+        if (UIElements.resetDayButton) UIElements.resetDayButton.addEventListener('click', DayView.clearDay); // Add listener for reset day
 
-        // Global listeners
+
         window.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 if (UIElements.itineraryItemModal && UIElements.itineraryItemModal.style.display === 'flex') UI.closeItineraryItemModal();
                 if (UIElements.managementModal && UIElements.managementModal.style.display === 'flex') UI.closeManagementModal();
                 if (UIElements.searchResultsModal && UIElements.searchResultsModal.style.display === 'flex') UI.closeSearchResultsModal();
-                // if (AppState.currentView === 'day') DayView.closeDayView(); // Optionally close Day View on Escape
-                UI.hideTooltip(0); // Hide tooltip immediately on escape
+                UI.hideTooltip(0); 
             }
         });
-        window.onclick = function(event) { // Close modals if clicked outside content
+        window.onclick = function(event) { 
             if (UIElements.itineraryItemModal && event.target == UIElements.itineraryItemModal) UI.closeItineraryItemModal();
             if (UIElements.managementModal && event.target == UIElements.managementModal) UI.closeManagementModal();
             if (UIElements.searchResultsModal && event.target == UIElements.searchResultsModal) UI.closeSearchResultsModal();
         }
         
-        // Tooltip hide on calendar grid mouseleave or window blur
         if(UIElements.calendarGrid) UIElements.calendarGrid.addEventListener('mouseleave', () => UI.hideTooltip());
-        window.addEventListener('blur', () => UI.hideTooltip(0)); // Hide immediately on window blur
+        window.addEventListener('blur', () => UI.hideTooltip(0)); 
     });
     </script>
 </body>
