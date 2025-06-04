@@ -1,1044 +1,1729 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>DEMATEL 分析工具 (含因果圖) - 優化版</title>
-   <script src="https://cdn.tailwindcss.com"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
-   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-   <script type="text/javascript" async
-       src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
-   </script>
-   <style>
-       body {
-           font-family: 'Inter', sans-serif; /* 使用 Inter 字體 */
-       }
-       /* 表格容器優化 */
-       .table-container {
-           max-height: 400px; 
-           overflow: auto;    
-           width: 100%;       
-           border: 1px solid #e2e8f0; 
-           border-radius: 0.375rem;   
-           margin-bottom: 1rem;       
-           background-color: #f9fafb; 
-       }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人行程表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .calendar-day {
+            min-height: 100px;
+            transition: background-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .calendar-day:hover {
+            background-color: #f0f9ff; /* Light blue hover */
+        }
+        .itinerary-item-display { /* For calendar cell summary */
+            font-size: 0.7rem;
+            padding: 2px;
+            margin-top: 2px;
+            background-color: #e9ecef; /* Light gray background */
+            border-radius: 3px;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 95%;
+        }
+        .itinerary-item-display p { margin: 0 0 2px 0; }
+        .itinerary-item-display ul, .itinerary-item-display ol { margin: 0 0 2px 1em; padding-left: 1em;}
+        .itinerary-item-display li { margin-bottom: 1px; }
 
-       .table-container table {
-           width: 100%; 
-           min-width: max-content; 
-           border-collapse: separate; 
-           border-spacing: 0;
-       }
+        .itinerary-item-count {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.65rem;
+            background-color: #60a5fa; /* Blue for count */
+            color: white;
+            padding: 1px 4px;
+            border-radius: 50%;
+            line-height: 1;
+        }
+        .modal {
+            display: none; position: fixed; z-index: 100;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.5);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe; margin: auto; padding: 20px;
+            border: 1px solid #888; width: 90%; max-width: 550px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .close-button {
+            color: #aaa; float: right; font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover, .close-button:focus {
+            color: black; text-decoration: none; cursor: pointer;
+        }
+        .modal-content::-webkit-scrollbar, #itineraryItemsList::-webkit-scrollbar, #dayTooltipContent::-webkit-scrollbar, #searchResultsList::-webkit-scrollbar, #dayViewEventsList::-webkit-scrollbar { width: 8px; }
+        .modal-content::-webkit-scrollbar-track, #itineraryItemsList::-webkit-scrollbar-track, #dayTooltipContent::-webkit-scrollbar-track, #searchResultsList::-webkit-scrollbar-track, #dayViewEventsList::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb, #itineraryItemsList::-webkit-scrollbar-thumb, #dayTooltipContent::-webkit-scrollbar-thumb, #searchResultsList::-webkit-scrollbar-thumb, #dayViewEventsList::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb:hover, #itineraryItemsList::-webkit-scrollbar-thumb:hover, #dayTooltipContent::-webkit-scrollbar-thumb:hover, #searchResultsList::-webkit-scrollbar-thumb:hover, #dayViewEventsList::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .custom-alert {
+            display: none; position: fixed; top: 20px; left: 50%;
+            transform: translateX(-50%); padding: 15px;
+            border: 1px solid; border-radius: 8px;
+            z-index: 1050;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px; text-align: center;
+        }
+        .custom-alert.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;}
+        .custom-alert.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .custom-alert.loading { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .custom-alert.info { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .hidden { display: none !important; }
+        .holiday-info { font-size: 0.7rem; line-height: 1; word-break: break-all; margin-top: auto; text-align: center; padding-top: 2px; }
+        .day-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
+        
+        #managementModal .modal-content { width: 95%; max-width: 600px; }
+        
+        .itinerary-modal-item { /* For item list in Add/Edit Modal */
+            display: flex; justify-content: space-between; align-items: flex-start; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; background-color: #f8f9fa; cursor: grab;
+        }
+        .itinerary-modal-item.dragging { opacity: 0.5; background-color: #dbeafe; }
+        .drag-over { border-top: 2px dashed #3b82f6; }
+        .itinerary-modal-item .item-details { flex-grow: 1; margin-right: 8px; }
+        .itinerary-modal-item .item-description { word-break: break-word; font-weight: 500; }
+        .itinerary-modal-item .item-description p:first-child { margin-top: 0; }
+        .itinerary-modal-item .item-description p:last-child { margin-bottom: 0; }
+        .itinerary-modal-item .item-time { font-size: 0.75rem; color: #4b5563; }
+        .itinerary-modal-item .item-location { font-size: 0.75rem; color: #16a34a; margin-top: 2px; }
+        .itinerary-modal-item .item-tags { font-size: 0.7rem; color: #1d4ed8; margin-top: 2px; }
+        .itinerary-modal-item .item-tags .tag { background-color: #e0e7ff; padding: 1px 4px; border-radius: 3px; margin-right: 3px; display: inline-block;}
+        .itinerary-modal-item .item-actions { display: flex; flex-direction: column; gap: 4px; }
+        .itinerary-modal-item .item-actions button { padding: 4px 8px; font-size: 0.8rem; }
+        .itinerary-modal-item .edit-btn { background-color: #3b82f6; color: white; }
+        .itinerary-modal-item .edit-btn:hover { background-color: #2563eb; }
+        .itinerary-modal-item .delete-btn { background-color: #ef4444; color: white; }
+        .itinerary-modal-item .delete-btn:hover { background-color: #dc2626; }
 
-       /* 通用 th, td 樣式 */
-       th, td {
-           border: 1px solid #e2e8f0; 
-           padding: 0.5rem; /* Tailwind p-2 */
-           text-align: center;
-           white-space: nowrap; 
-       }
-       .table-container td input[type="number"] {
-           padding: 0.25rem; 
-           max-width: 80px; 
-       }
+        .time-input-group { display: flex; gap: 1rem; margin-top: 0.5rem; margin-bottom: 0.75rem; }
+        .time-input-group > div { flex: 1; }
 
-       /* 固定表頭列 */
-       .table-container thead th {
-           position: sticky;
-           top: -1px; 
-           background-color: #f8fafc; 
-           z-index: 20; 
-       }
+        #dayTooltip { position: absolute; display: none; background-color: white; border: 1px solid #cbd5e1; border-radius: 0.375rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); padding: 0.75rem; z-index: 50; width: 280px; max-height: 220px; }
+        #dayTooltipContent { max-height: 180px; overflow-y: auto; }
+        .tooltip-item { font-size: 0.8rem; padding: 0.25rem 0; border-bottom: 1px solid #e5e7eb; }
+        .tooltip-item:last-child { border-bottom: none; }
+        .tooltip-item .item-time { font-weight: 600; color: #374151; margin-right: 0.25rem; }
+        .tooltip-item .item-description { color: #4b5563; }
+        .tooltip-item .item-description p:first-child { margin-top: 0; }
+        .tooltip-item .item-description p:last-child { margin-bottom: 0; }
+        .tooltip-item .item-location-tooltip { font-size: 0.75rem; color: #16a34a; margin-top: 1px; }
+        .tooltip-item .item-tags-tooltip { font-size: 0.7rem; color: #1d4ed8; margin-top: 1px; }
+        .tooltip-item .item-tags-tooltip .tag { background-color: #e0e7ff; padding: 1px 4px; border-radius: 3px; margin-right: 3px; display: inline-block;}
+        .tooltip-no-items { font-size: 0.8rem; color: #6b7280; }
+        
+        #searchResultsModal .modal-content { max-width: 700px; }
+        .search-result-item { padding: 0.5rem; border-bottom: 1px solid #e5e7eb; cursor: pointer; }
+        .search-result-item:hover { background-color: #f9fafb; }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-date { font-weight: 600; color: #1e3a8a; margin-bottom: 0.25rem; }
+        .search-result-description p { margin: 0.1rem 0;}
 
-       /* 固定表頭列的第一個儲存格 */
-       .table-container thead th:first-child {
-           position: sticky;
-           left: -1px; 
-           z-index: 30; 
-       }
-
-       /* 固定表格主體 (tbody) 的第一欄 */
-       .table-container tbody th:first-child {
-           position: sticky;
-           left: -1px; 
-           background-color: #ffffff; 
-           z-index: 10; 
-       }
-       .table-container tbody th {
-           background-color: #f9fafb; 
-       }
-       .table-container tbody th:first-child {
-           background-color: #ffffff; 
-       }
-
-       input[type="number"], select {
-           width: auto; 
-           min-width: 100px; 
-           text-align: center;
-           border: 1px solid #cbd5e1;
-           border-radius: 0.25rem;
-           padding: 0.25rem 0.5rem; 
-       }
-       #customThresholdInputContainer input[type="number"] {
-           width: 120px; 
-       }
-       .section-title {
-           font-size: 1.5rem; 
-           font-weight: 600; 
-           margin-bottom: 1rem; 
-           color: #1e3a8a; 
-       }
-       .subsection-title {
-           font-size: 1.25rem; 
-           font-weight: 600; 
-           margin-top: 1rem;
-           margin-bottom: 0.5rem; 
-           color: #1e40af; 
-       }
-       .content-text {
-           font-size: 0.95rem;
-           line-height: 1.6;
-           color: #334155; 
-       }
-       .content-text p, .content-text ul, .content-text ol {
-           margin-bottom: 0.75rem;
-       }
-       .content-text ul {
-           list-style-type: disc;
-           margin-left: 1.5rem;
-       }
-        .content-text ol > li > ul { 
-           margin-top: 0.25rem;
-           margin-bottom: 0.5rem; 
-       }
-       .content-text code {
-           background-color: #f1f5f9;
-           padding: 0.1rem 0.3rem;
-           border-radius: 0.25rem;
-           font-family: monospace;
-       }
-       .h4-custom { 
-           font-size: 1.05rem;
-           font-weight: 600;
-           margin-top: 0.75rem;
-           margin-bottom: 0.25rem;
-           color: #1d4ed8; 
-       }
-       .btn {
-           padding: 0.5rem 1rem;
-           border-radius: 0.375rem;
-           font-weight: 500;
-           transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
-           cursor: pointer;
-           box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-       }
-       .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-       }
-       .btn:active {
-           transform: translateY(0px);
-           box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-       }
-       .btn-primary {
-           background-color: #2563eb; 
-           color: white;
-       }
-       .btn-primary:hover {
-           background-color: #1d4ed8; 
-       }
-       .btn-secondary {
-           background-color: #64748b; 
-           color: white;
-       }
-       .btn-secondary:hover {
-           background-color: #475569; 
-       }
-       .btn-success {
-           background-color: #16a34a; 
-           color: white;
-       }
-       .btn-success:hover {
-           background-color: #15803d; 
-       }
-       .info-box {
-           background-color: #eff6ff; 
-           border-left: 4px solid #3b82f6; 
-           padding: 1rem;
-           margin-bottom: 1rem;
-           border-radius: 0.25rem;
-       }
-       #causalDiagramContainer {
-           width: 100%;
-           max-width: 800px; 
-           margin: 0 auto; 
-       }
-
-       /* 動畫效果 */
-       .section-hidden {
-           display: none;
-           opacity: 0;
-       }
-       .section-visible {
-           display: block; 
-           animation: fadeInAnimation 0.5s ease-in-out forwards;
-       }
-       @keyframes fadeInAnimation {
-           from { opacity: 0; transform: translateY(15px); }
-           to { opacity: 1; transform: translateY(0); }
-       }
-
-       #messageBox {
-           transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-       }
-       .message-box-enter {
-           opacity: 1 !important;
-           transform: translateX(0) !important;
-       }
-       .message-box-exit {
-           opacity: 0 !important;
-           transform: translateX(100%) !important;
-       }
-       .message-box-initial {
-           opacity: 0;
-           transform: translateX(100%);
-       }
-       
-       /* 針對 MathJax 渲染的區塊公式進行大小和間距調整 */
-       mjx-container[jax="CHTML"][display="true"] {
-            display: block !important; /* 確保是區塊顯示 */
-            font-size: 0.85em !important; /* 相對周圍文字縮小公式，可調整此值 (例如 0.8em 到 0.9em) */
-            margin-top: 0.3em !important; /* 調整公式上方的間距 */
-            margin-bottom: 0.3em !important; /* 調整公式下方的間距 */
-            text-align: center !important; /* 確保公式在區塊內居中 */
-       }
-       /* 如果需要，可以為行內公式也做一些微調，但通常 baseline 對齊已足夠 */
-       .mjx-chtml {
-           vertical-align: baseline !important;
-       }
-
-   </style>
+        /* Day View Styles */
+        #dayViewContainer {
+            background-color: #f9fafb; /* Light gray background for day view */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+        }
+        #dayViewDateTitle {
+            font-size: 1.75rem; /* Larger title for day view date */
+            font-weight: 700;
+            color: #1e3a8a; /* Dark blue */
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb; /* Light gray border */
+        }
+        #dayViewEventsList {
+            max-height: 60vh; /* Limit height and allow scroll */
+            overflow-y: auto;
+            padding-right: 0.5rem; /* Space for scrollbar */
+        }
+        .day-view-item {
+            background-color: white;
+            border: 1px solid #e2e8f0; /* Lighter border */
+            border-radius: 0.375rem; /* Rounded corners */
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .day-view-item .item-details { flex-grow: 1; margin-right: 1rem; }
+        .day-view-item .item-description { font-size: 0.95rem; color: #374151; /* Dark gray text */ }
+        .day-view-item .item-description p { margin: 0.25rem 0; }
+        .day-view-item .item-time { font-size: 0.85rem; color: #059669; /* Green for time */ font-weight: 500; margin-bottom: 0.25rem; }
+        .day-view-item .item-location { font-size: 0.85rem; color: #4f46e5; /* Indigo for location */ margin-top: 0.25rem; }
+        .day-view-item .item-tags { font-size: 0.8rem; color: #0284c7; /* Sky blue for tags */ margin-top: 0.25rem; }
+        .day-view-item .item-tags .tag { background-color: #e0f2fe; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block;}
+        .day-view-item .item-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
+        .day-view-item .item-actions button {
+            padding: 0.375rem 0.75rem; font-size: 0.8rem; border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+        .day-view-item .edit-btn { background-color: #2563eb; color: white; } /* Blue edit */
+        .day-view-item .edit-btn:hover { background-color: #1d4ed8; }
+        .day-view-item .delete-btn { background-color: #dc2626; color: white; } /* Red delete */
+        .day-view-item .delete-btn:hover { background-color: #b91c1c; }
+        .day-view-no-items {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1rem;
+            color: #6b7280; /* Gray text */
+        }
+        .day-view-controls {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .day-view-controls button {
+            padding: 0.625rem 1.25rem; /* py-2.5 px-5 */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.2s;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-8">
-   <div class="container mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
-       <header class="mb-8 text-center">
-           <h1 class="text-3xl md:text-4xl font-bold text-gray-800">DEMATEL 分析工具 (含因果圖)</h1>
-           <p class="text-gray-600 mt-2">上傳 Excel 檔案，進行 DEMATEL 分析、繪製因果圖並匯出結果。</p>
-       </header>
+<body class="bg-slate-50 text-slate-800">
 
-       <main>
-           <section id="methodologySection" class="mb-8 p-6 border border-gray-200 rounded-lg bg-gray-50 content-text">
-               <h2 class="section-title">DEMATEL 演算法說明</h2>
-               <p><strong>DEMATEL（決策實驗室分析法）</strong> 主要用於分析複雜系統中多個因素間的因果關係，並以因果圖（Causal Diagram）將結果視覺化。以下為完整演算法步驟及因果圖繪製方法：</p>
-               
-               <hr class="my-4">
+    <div id="customAlert" class="custom-alert">
+        <span id="customAlertMessage"></span>
+    </div>
 
-               <h3 class="subsection-title">一、DEMATEL 演算法步驟</h3>
-               <ol class="list-decimal ml-6">
-                   <li> 
-                       <strong>建立直接關係矩陣（Initial Direct-Relation Matrix, $$S$$）</strong>
-                       <p>由專家對所有因素兩兩間的影響程度進行評分，常用 0~4 或 1~4 等等級（如：0=無影響，1=低度，2=中度，3=高度，4=極高度影響），自我影響設為 0。</p>
-                   </li>
-                   <li>
-                       <strong>正規化直接關係矩陣（Normalization）</strong>
-                       <p>將每個元素除以所有行元素和的最大值，得到正規化矩陣 $$X$$：$$ X = \frac{S}{\max_{i} \sum_{j} S_{ij}} $$確保所有元素值介於 0~1 之間。</p>
-                   </li>
-                   <li>
-                       <strong>計算總關係矩陣（Total-Relation Matrix, $$T$$）</strong>
-                       <p>利用下式計算總關係矩陣：$$ T = X (I - X)^{-1} $$其中 $$I$$ 為單位矩陣。$$T$$ 包含直接及所有間接影響。</p>
-                   </li>
-                   <li>
-                       <strong>計算各因素的影響度（$$D$$）與受影響度（$$R$$）</strong>
-                       <p>$$D_i$$：第 $$i$$ 行元素總和，表示因素 $$i$$ 對其他因素的總影響（row sum）。$$R_j$$：第 $$j$$ 列元素總和，表示因素 $$j$$ 被其他因素影響的總和（column sum）。</p>
-                   </li>
-                   <li>
-                       <strong>計算中心度（Prominence, $$D+R$$）與原因度（Relation, $$D-R$$）</strong>
-                       <p>中心度 $$D+R$$：表示該因素在系統中的重要性。原因度 $$D-R$$：若為正，屬於「原因」因素（Cause）；為負則屬於「結果」因素（Effect）。</p>
-                   </li>
-                   <li>  
-                       <strong>（可選）設定臨界值（Threshold）</strong>
-                       <p>在 DEMATEL 分析中，臨界值是用來篩選全關係矩陣（Total-Relation Matrix, $$T$$）中顯著影響的標準。其目的是過濾掉影響力較弱的連結，讓因果圖（Causal Diagram）更加清晰、聚焦於主要關係，避免圖形過於複雜難以解讀。</p>
-                       
-                       <h4 class="h4-custom">臨界值的設定方式</h4>
-                       <p>常見的臨界值設定方法有：</p>
-                       <ul class="list-disc ml-6 mt-1">
-                           <li><strong>平均值法：</strong>設定臨界值為 $$T$$ 矩陣所有元素的平均值。$$ \text{Threshold} = \frac{1}{n^2} \sum_{i=1}^{n} \sum_{j=1}^{n} T_{ij} $$只顯示 $$ T_{ij} > \text{Threshold} $$ 的關係線。</li>
-                           <li><strong>中位數法：</strong>以 $$T$$ 矩陣所有元素的中位數作為臨界值。</li>
-                           <li><strong>自訂百分位：</strong>例如設定在前 25% 或 50% 最大值的分界點作為臨界值。</li>
-                           <li><strong>專家判斷法：</strong>由領域專家根據經驗選擇一個合適的數值。</li>
-                       </ul>
-                       
-                       <h4 class="h4-custom">實作流程建議</h4>
-                       <ul class="list-disc ml-6 mt-1">
-                           <li><strong>計算臨界值：</strong>使用上述任一方式計算 $$T$$ 的臨界值。(本工具目前提供平均值、中位數及自訂選項)</li>
-                           <li><strong>篩選關係：</strong>只保留 $$T_{ij} > \text{Threshold}$$ 的元素，並將這些關係繪製於因果圖上。(此功能為進階選項，目前圖表顯示所有點，關係線的繪製可基於此臨界值考量)</li>
-                           <li><strong>簡化因果圖：</strong>這樣可以大幅減少線條數量，讓圖形聚焦於主要影響路徑。</li>
-                       </ul>
-                   </li>
-               </ol>
+    <div id="dayTooltip">
+        <div id="dayTooltipContent"></div>
+    </div>
 
-               <hr class="my-4">
+    <main class="container mx-auto p-4">
+        <header class="mb-6 p-4 bg-white shadow-md rounded-lg">
+            <div class="flex justify-between items-center">
+                <h1 id="mainTitle" class="text-3xl font-bold text-sky-700">個人行程表</h1>
+                <button id="openManagementModalButton" type="button" class="bg-slate-600 text-white py-2 px-4 rounded-md hover:bg-slate-700 transition-colors flex items-center">
+                    <i class="fas fa-cog mr-2"></i>設定
+                </button>
+            </div>
+        </header>
 
-               <h3 class="subsection-title">二、因果圖繪製方法</h3>
-               <ul class="list-disc ml-6"> 
-                   <li><strong>橫軸：中心度 $$D+R$$</strong></li>
-                   <li><strong>縱軸：原因度 $$D-R$$</strong></li>
-                   <li>每個因素在座標上以點表示，點的位置即為該因素的中心度與原因度。</li>
-                   <li>圖表將為每個因素分配不同顏色，並提供圖例以茲識別。</li>
-                   <li>可用箭頭或線條標示顯著（大於臨界值）的因果關係（此為進階繪圖功能）。</li>
-               </ul>
-               <blockquote class="mt-2"> 
-                   <p class="pl-4 border-l-4 border-gray-300 italic">「繪製因果圖時，以中心度($$D+R$$)為橫軸，原因度($$D–R$$)為縱軸，構成一個座標圖形。正值偏向為原因類，負值偏向為結果類。」</p>
-               </blockquote>
+        <!-- Calendar View Area -->
+        <section id="calendarViewSection" class="bg-white p-6 shadow-lg rounded-lg" aria-labelledby="calendar-section-title">
+            <h2 id="calendar-section-title" class="sr-only">行程表日曆與控制區域</h2>
+            
+            <div id="searchBarContainer" class="mb-4 flex gap-2">
+                <input type="search" id="searchInput" placeholder="搜尋行程描述、標籤、地點..." class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                <button id="searchButton" type="button" class="bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 transition-colors">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
 
-               <hr class="my-4">
+            <div id="monthControls" class="flex justify-between items-center mb-4">
+                <button type="button" onclick="Calendar.changeMonth(-1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-4 rounded-md transition-colors" aria-label="上個月">&lt;</button>
+                <h2 id="monthYearDisplay" class="text-xl font-bold text-sky-700" aria-live="polite"></h2>
+                <button type="button" onclick="Calendar.changeMonth(1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-4 rounded-md transition-colors" aria-label="下個月">&gt;</button>
+            </div>
+            
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1" aria-labelledby="monthYearDisplay"></div>
 
-               <h3 class="subsection-title">三、前端實作建議（含因果圖繪製）</h3>
-               <ul class="list-disc ml-6"> 
-                   <li><strong>矩陣計算：</strong> 可用 JavaScript 進行矩陣運算（如 math.js）。</li>
-                   <li><strong>因果圖繪製：</strong> 建議使用 D3.js、Chart.js 或 Plotly.js，將每個因素以點標示於座標圖，橫軸為 $$D+R$$，縱軸為 $$D-R$$，並可用線條或箭頭連接因果關係強的因素。</li>
-                   <li><strong>自動計算與繪圖流程：</strong>
-                       <ol class="list-decimal ml-6">
-                           <li>上傳 Excel 檔案，取得直接關係矩陣。</li>
-                           <li>完成 DEMATEL 計算後，將 $$D+R$$ 和 $$D-R$$ 結果傳給繪圖模組。</li>
-                           <li>動態生成因果圖，並可匯出圖片或結果。</li>
-                       </ol>
-                   </li>
-               </ul>
-                <p class="text-sm mt-2 text-gray-600">註：本工具已包含上述前端實作的主要功能。</p>
+            <div id="itineraryControls" class="mt-6">
+                <form onsubmit="event.preventDefault();"> <div>
+                         <label for="scheduleNotes" class="block text-sm font-medium text-slate-700 mb-1">行程表備註 (本月):</label>
+                         <textarea id="scheduleNotes" rows="3" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500" placeholder="例如：5月重要會議、團隊活動"></textarea>
+                         <button id="saveNotesButton" type="button" class="mt-2 bg-emerald-500 text-white py-2 px-4 rounded-md hover:bg-emerald-600 transition-colors">儲存備註</button> </div>
+                </form>
+                <div class="mt-6 text-right">
+                    <button id="exportItineraryButton" type="button" onclick="Exporter.exportItineraryToICS()" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">匯出行程表至 Google 日曆 (.ics)</button>
+                </div>
+            </div>
+        </section>
 
-               <hr class="my-4">
+        <!-- Day View Area -->
+        <section id="dayViewContainer" class="hidden" aria-labelledby="dayViewDateTitle">
+            <h2 id="dayViewDateTitle" class="text-2xl font-bold text-sky-800 mb-4"></h2>
+            <div id="dayViewEventsList" class="space-y-3 mb-6">
+                <!-- Day's events will be populated here by JavaScript -->
+            </div>
+            <div class="day-view-controls">
+                <button id="addNewItemInDayViewButton" type="button" class="bg-green-500 hover:bg-green-600 text-white">
+                    <i class="fas fa-plus mr-2"></i>新增本日行程
+                </button>
+                <button id="backToCalendarViewButton" type="button" class="bg-slate-500 hover:bg-slate-600 text-white">
+                    <i class="fas fa-calendar-alt mr-2"></i>返回月曆檢視
+                </button>
+            </div>
+        </section>
 
-               <h3 class="subsection-title">四、參考 R 套件函數流程（供前端移植參考）</h3>
-               <ul class="list-disc ml-6"> 
-                   <li><code>normalize()</code>：正規化直接關係矩陣</li>
-                   <li><code>total_relationship_matrix()</code>：計算總關係矩陣</li>
-                   <li><code>relationships_between_criteria()</code>：回傳各因素 $$D$$、$$R$$、$$D+R$$、$$D-R$$</li>
-                   <li><code>visualize()</code>：繪製因果圖</li>
-               </ul>
-           </section>
+    </main>
 
-           <section id="uploadSection" class="mb-8 p-6 border border-gray-200 rounded-lg bg-gray-50">
-               <h2 class="section-title">步驟一：上傳直接關係矩陣 (Excel)</h2>
-               <div class="info-box">
-                   <p class="text-sm text-gray-700">
-                       請上傳包含直接關係矩陣的 Excel 檔案 (.xlsx 或 .xls)。矩陣的第一列和第一行應為因素名稱，其餘為影響程度數值 (例如 0-4)。
-                       <br><strong>重要：</strong>因素對自身的影響 (對角線元素) 應為 0。
-                   </p>
+    <!-- Management Modal -->
+    <div id="managementModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="managementModalTitle">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="managementModalTitle" class="text-xl font-bold text-sky-700">設定</h3>
+                <button id="closeManagementModalButton" class="close-button" aria-label="關閉">&times;</button>
+            </div>
+            <div id="itineraryManagementContent">
+                <h2 class="text-lg font-semibold mb-3 text-sky-600">行程表設定</h2>
+                <form onsubmit="event.preventDefault(); ScheduleParser.triggerImportScheduleFromPastedText();">
+                    <div class="mb-4">
+                        <label for="fullSchedulePasteArea" class="block text-sm font-medium text-slate-700 mb-1">貼上行程表文字 (簡易格式)</label>
+                        <textarea id="fullSchedulePasteArea" rows="5" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500" placeholder="每行一個行程項目，或包含日期 (如 5/15 會議)。支援 Markdown。"></textarea>
+                        <button type="submit" class="mt-2 w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors">匯入貼上之文字</button>
+                    </div>
+                </form>
+                <hr class="my-4">
+                <div class="mb-4">
+                   <label for="holidayFileImport" class="block text-sm font-medium text-slate-700 mb-1">匯入假期檔案 (.ics)</label>
+                   <input type="file" id="holidayFileImport" accept=".ics" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                   <button type="button" onclick="HolidayImporter.triggerHolidayImport()" class="mt-2 w-full bg-cyan-600 text-white py-2 px-4 rounded-md hover:bg-cyan-700 transition-colors">匯入假期</button>
                </div>
-               <div class="flex flex-col sm:flex-row items-center gap-4">
-                   <input type="file" id="excelFile" accept=".xlsx,.xls" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none p-2">
-                   <button id="uploadButton" class="btn btn-primary w-full sm:w-auto">上傳並預覽</button>
-               </div>
-               <p id="fileName" class="mt-2 text-sm text-gray-500"></p>
-           </section>
+                <hr class="my-4">
+                <section aria-labelledby="itinerary-actions-title-modal">
+                    <h3 id="itinerary-actions-title-modal" class="text-md font-semibold mb-2 text-slate-700">行程表儲存與清除</h3>
+                    <div class="space-y-2">
+                        <button id="saveItineraryButton" type="button" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">儲存目前行程表</button>
+                        <button id="clearItineraryButton" type="button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">清除本月行程表</button>
+                    </div>
+                </section>
+                <hr class="my-4">
+                <p class="text-xs text-slate-500 mt-2">注意：行程表資料將儲存在您的瀏覽器中。</p>
+            </div>
+        </div>
+    </div>
 
-           <section id="matrixDisplaySection" class="section-hidden mb-8 p-6 border border-gray-200 rounded-lg">
-               <h2 class="section-title">步驟二：檢視與修正原始矩陣 (S)</h2>
-               <div class="info-box">
-                   <p class="text-sm text-gray-700">
-                       請確認以下由 Excel 檔案讀取的直接關係矩陣。您可以在表格中直接修改數值。
-                       確認對角線元素為 0。
-                   </p>
-               </div>
-               <div id="originalMatrixContainer" class="table-container"> 
-                   </div>
-               <div class="flex flex-col sm:flex-row gap-4 mt-4"> 
-                   <button id="confirmMatrixButton" class="btn btn-primary">確認矩陣並計算</button>
-                   <button id="reUploadButton" class="btn btn-secondary">重新上傳檔案</button>
-               </div>
-           </section>
+    <!-- Itinerary Item Modal -->
+    <div id="itineraryItemModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="itineraryItemModalTitle">
+        <div class="modal-content">
+            <button class="close-button" onclick="UI.closeItineraryItemModal()" aria-label="關閉">&times;</button>
+            <h3 id="itineraryItemModalTitle" class="text-lg font-semibold mb-4">編輯行程項目</h3>
+            <div id="itineraryItemsList" data-date="" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                <!-- Items for the selected date in the modal (if editing multiple) -->
+            </div>
+            <div class="border-t pt-4">
+                <div>
+                    <label for="newItineraryItemText" class="block text-sm font-medium text-slate-700 mb-1">行程描述 (支援 Markdown):</label>
+                    <textarea id="newItineraryItemText" rows="3" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500" placeholder="輸入行程描述，可使用 Markdown 格式..."></textarea>
+                </div>
+                <div class="time-input-group">
+                    <div>
+                        <label for="itineraryStartTime" class="block text-sm font-medium text-slate-700 mb-1">開始時間 (選填):</label>
+                        <input type="time" id="itineraryStartTime" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+                    <div>
+                        <label for="itineraryEndTime" class="block text-sm font-medium text-slate-700 mb-1">結束時間 (選填):</label>
+                        <input type="time" id="itineraryEndTime" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <label for="itineraryItemTags" class="block text-sm font-medium text-slate-700 mb-1">標籤 (以逗號分隔, 選填):</label>
+                    <input type="text" id="itineraryItemTags" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500" placeholder="例如：工作,重要,會議">
+                </div>
+                <div class="mt-2">
+                    <label for="itineraryItemLocation" class="block text-sm font-medium text-slate-700 mb-1">地點 (選填):</label>
+                    <input type="text" id="itineraryItemLocation" class="w-full p-2 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500" placeholder="例如：會議室 A, 公司">
+                </div>
+                <button id="addOrUpdateItineraryItemButton" type="button" class="mt-4 w-full bg-sky-600 text-white py-2 px-3 rounded-md hover:bg-sky-700 transition-colors">新增項目</button>
+            </div>
+        </div>
+    </div>
 
-           <section id="resultsSection" class="section-hidden mb-8 p-6 border border-gray-200 rounded-lg">
-               <h2 class="section-title">步驟三：DEMATEL 分析結果</h2>
+    <!-- Search Results Modal -->
+    <div id="searchResultsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="searchResultsModalTitle">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="searchResultsModalTitle" class="text-xl font-bold text-sky-700">搜尋結果</h3>
+                <button id="closeSearchResultsModalButton" class="close-button" aria-label="關閉">&times;</button>
+            </div>
+            <div id="searchResultsList" class="max-h-[60vh] overflow-y-auto">
+                <!-- Search results will be populated here -->
+            </div>
+        </div>
+    </div>
 
-               <div class="mb-6">
-                   <h3 class="text-xl font-semibold text-gray-700 mb-2">1. 正規化矩陣 (Normalized Matrix, X)</h3>
-                   <div id="normalizedMatrixContainer" class="table-container"></div>
-               </div>
 
-               <div class="mb-6">
-                   <h3 class="text-xl font-semibold text-gray-700 mb-2">2. 全關係矩陣 (Total Relationship Matrix, T)</h3>
-                   <div id="totalRelationshipMatrixContainer" class="table-container"></div>
-               </div>
+    <script>
+    // AppState
+    let AppState = {
+        currentYear: new Date().getFullYear(), currentMonth: new Date().getMonth(),
+        shifts: {}, notes: '', selectedDateForAssignment: null, holidays: {},
+        editingItemId: null, draggedItemId: null, tooltipTimeout: null,
+        currentView: 'calendar', // 'calendar' or 'day'
+        selectedDayForDayView: null
+    };
 
-               <div class="mb-6">
-                   <h3 class="text-xl font-semibold text-gray-700 mb-2">3. 各項指標 (D, R, D+R, D-R)</h3>
-                   <div id="indicatorsContainer" class="table-container"></div>
-               </div>
+    // UIElements
+    const UIElements = {
+        mainTitle: null, monthYearDisplay: null, calendarGrid: null,
+        fullSchedulePasteArea: null, 
+        itineraryItemModal: null, itineraryItemsList: null, newItineraryItemText: null, 
+        itineraryStartTime: null, itineraryEndTime: null, itineraryItemTags: null, itineraryItemLocation: null,
+        addOrUpdateItineraryItemButton: null,
+        scheduleNotesTextarea: null, customAlertBox: null, customAlertMessageBox: null, saveNotesButton: null,
+        itineraryControls: null, exportItineraryButton: null,
+        saveItineraryButton: null, clearItineraryButton: null,
+        managementModal: null, openManagementModalButton: null, closeManagementModalButton: null,
+        itineraryManagementContent: null,
+        dayTooltip: null, dayTooltipContent: null,
+        searchInput: null, searchButton: null, searchBarContainer: null, monthControls: null,
+        searchResultsModal: null, searchResultsList: null, closeSearchResultsModalButton: null,
+        // Day View Elements
+        calendarViewSection: null, dayViewContainer: null, dayViewDateTitle: null, dayViewEventsList: null,
+        addNewItemInDayViewButton: null, backToCalendarViewButton: null
+    };
 
-               <div class="mb-6">
-                   <h3 class="text-xl font-semibold text-gray-700 mb-2">4. 設定臨界值 (Threshold) - 用於影響關係分析</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-center">
-                       <div>
-                           <label for="thresholdType" class="block text-sm font-medium text-gray-700">臨界值計算方式:</label>
-                           <select id="thresholdType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                               <option value="average" selected>平均值 (Average)</option>
-                               <option value="median">中位數 (Median)</option>
-                               <option value="custom">自訂 (Custom)</option>
-                           </select>
-                       </div>
-                       <div id="customThresholdInputContainer" class="hidden"> 
-                           <label for="customThresholdValue" class="block text-sm font-medium text-gray-700">自訂臨界值:</label>
-                           <input type="number" id="customThresholdValue" step="0.001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" placeholder="手動輸入數值">
-                       </div>
-                   </div>
-                   <p class="text-xs text-gray-500 mt-1">
-                       選擇臨界值的計算方式或手動輸入。臨界值主要用於分析時識別哪些因素間的影響程度較為顯著，進而簡化因果圖中的關係線（進階繪圖功能待擴展）。
-                   </p>
-                   <p id="calculatedThresholdDisplay" class="text-sm font-medium text-gray-700 mt-2"></p>
-               </div>
+    // Utils
+    const Utils = {
+        showCustomAlert: (message, type = 'error', duration = 3500) => {
+            if (!UIElements.customAlertBox || !UIElements.customAlertMessageBox) return;
+            UIElements.customAlertMessageBox.textContent = message;
+            UIElements.customAlertBox.className = 'custom-alert'; // Reset classes
+            UIElements.customAlertBox.classList.add(type);
+            UIElements.customAlertBox.style.display = 'block';
+            if (duration > 0) {
+                setTimeout(() => { if(UIElements.customAlertBox) UIElements.customAlertBox.style.display = 'none'; }, duration);
+            }
+        },
+        hideCustomAlert: () => {
+            if (UIElements.customAlertBox) UIElements.customAlertBox.style.display = 'none';
+        },
+        getLocalStorageKey: (dataType, year = AppState.currentYear, month = AppState.currentMonth) => {
+            const version = "v3.28_day_view"; // Updated version
+            if (dataType === 'holidays_all') {
+               return `personalItinerary_${version}_holidays_all`;
+            }
+            return `personalItinerary_${version}_${dataType}_${year}_${String(month + 1).padStart(2, '0')}`;
+        },
+        generateUUID: () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, 
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+    };
 
-               <div class="mb-6">
-                   <h3 class="text-xl font-semibold text-gray-700 mb-2">5. 因果關係圖 (Causal Diagram)</h3>
-                   <div id="causalDiagramContainer" class="bg-gray-50 p-4 rounded-md min-h-[450px] flex items-center justify-center"> 
-                       <canvas id="causalDiagramCanvas"></canvas>
-                   </div>
-                   <p id="causalDiagramMessage" class="text-center text-gray-500 mt-2"></p>
-               </div>
-
-               <div class="flex flex-col sm:flex-row gap-4 mt-6">
-                   <button id="exportResultsButton" class="btn btn-success">匯出所有結果至 Excel</button>
-                   <button id="analyzeNewButton" class="btn btn-secondary">分析新檔案 (清空目前)</button>
-               </div>
-           </section>
-       </main>
-
-       <footer class="mt-12 pt-8 border-t border-gray-300 text-center text-sm text-gray-500">
-           <p>&copy; 2024 DEMATEL 分析工具. All rights reserved (示意文字).</p>
-           <p>優化版 by Gemini.</p>
-       </footer>
-
-       <div id="messageBox" class="fixed top-5 right-5 bg-red-500 text-white p-4 rounded-lg shadow-md message-box-initial z-50">
-           <p id="messageText"></p>
-       </div>
-   </div>
-
-   <script>
-       // DOM 元素獲取
-       const excelFileInput = document.getElementById('excelFile');
-       const uploadButton = document.getElementById('uploadButton');
-       const fileNameDisplay = document.getElementById('fileName');
-       const matrixDisplaySection = document.getElementById('matrixDisplaySection');
-       const originalMatrixContainer = document.getElementById('originalMatrixContainer');
-       const confirmMatrixButton = document.getElementById('confirmMatrixButton');
-       const reUploadButton = document.getElementById('reUploadButton');
-       const resultsSection = document.getElementById('resultsSection');
-       const normalizedMatrixContainer = document.getElementById('normalizedMatrixContainer');
-       const totalRelationshipMatrixContainer = document.getElementById('totalRelationshipMatrixContainer');
-       const indicatorsContainer = document.getElementById('indicatorsContainer');
-       
-       const thresholdTypeSelect = document.getElementById('thresholdType');
-       const customThresholdInputContainer = document.getElementById('customThresholdInputContainer');
-       const customThresholdValueInput = document.getElementById('customThresholdValue');
-       const calculatedThresholdDisplay = document.getElementById('calculatedThresholdDisplay');
-
-       const causalDiagramCanvas = document.getElementById('causalDiagramCanvas');
-       const causalDiagramMessage = document.getElementById('causalDiagramMessage');
-       const exportResultsButton = document.getElementById('exportResultsButton');
-       const analyzeNewButton = document.getElementById('analyzeNewButton');
-       const messageBox = document.getElementById('messageBox');
-       const messageText = document.getElementById('messageText');
-
-       // 儲存矩陣資料的變數
-       let factors = []; 
-       let originalMatrix_S = []; 
-       let normalizedMatrix_X = []; 
-       let totalRelationshipMatrix_T = []; 
-       let D_values = []; 
-       let R_values = []; 
-       let D_plus_R = []; 
-       let D_minus_R = []; 
-       let currentThresholdValue = null; 
-       let causalChart = null; 
-
-       // 圖表顏色配置
-       const chartColors = [
-           'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
-           'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
-           'rgba(199, 199, 199, 0.8)', 'rgba(83, 102, 255, 0.8)', 'rgba(40, 159, 64, 0.8)',
-           'rgba(210, 99, 132, 0.8)', 'rgba(0, 206, 209, 0.8)', 'rgba(255, 138, 101, 0.8)',
-           'rgba(100, 181, 246, 0.8)', 'rgba(255, 241, 118, 0.8)', 'rgba(129, 199, 132, 0.8)',
-           'rgba(179, 157, 219, 0.8)', 'rgba(255, 183, 77, 0.8)', 'rgba(144, 164, 174, 0.8)'
-       ];
-
-       function setSectionVisibility(sectionElement, isVisible) {
-           if (isVisible) {
-               sectionElement.classList.remove('section-hidden');
-               sectionElement.classList.add('section-visible');
-               if (sectionElement.tagName === 'SECTION') {
-                    sectionElement.style.display = 'block'; 
-               }
-           } else {
-               sectionElement.classList.remove('section-visible');
-               sectionElement.classList.add('section-hidden');
-                setTimeout(() => {
-                    if (!sectionElement.classList.contains('section-visible')) { 
-                        sectionElement.style.display = 'none';
+    // DataStorage
+    const DataStorage = {
+        loadDataForCurrentMonth: () => {
+            try {
+                const shiftsData = localStorage.getItem(Utils.getLocalStorageKey('shifts'));
+                const parsedShifts = shiftsData ? JSON.parse(shiftsData) : {};
+                AppState.shifts = {}; 
+                for (const dateKey in parsedShifts) {
+                    if (Array.isArray(parsedShifts[dateKey])) {
+                        AppState.shifts[dateKey] = parsedShifts[dateKey].map(item => ({
+                            id: item.id || Utils.generateUUID(),
+                            description: item.description || "",
+                            startTime: item.startTime || "", 
+                            endTime: item.endTime || "",
+                            tags: Array.isArray(item.tags) ? item.tags : [],
+                            location: item.location || "" 
+                        }));
+                    } else { 
+                        // Legacy: If an item is just a string, convert it to the new object structure
+                        AppState.shifts[dateKey] = [{ 
+                            id: Utils.generateUUID(), 
+                            description: String(parsedShifts[dateKey]),
+                            startTime: "", endTime: "", tags: [], location: ""
+                        }];
                     }
-                }, 500); 
-           }
-       }
-
-       function handleFileUpload() {
-           const file = excelFileInput.files[0];
-           if (!file) {
-               showMessage("請先選擇一個 Excel 檔案。");
-               return;
-           }
-           const reader = new FileReader();
-           reader.onload = function(event) {
-               try {
-                   const data = new Uint8Array(event.target.result);
-                   const workbook = XLSX.read(data, { type: 'array' });
-                   const firstSheetName = workbook.SheetNames[0];
-                   const worksheet = workbook.Sheets[firstSheetName];
-                   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                   if (jsonData.length < 2) { 
-                       showMessage("Excel 檔案格式錯誤：至少需要包含因素名稱列和一行影響數據。");
-                       return;
-                   }
-                   factors = jsonData[0].slice(1).map(String).filter(f => f && f.trim() !== ""); 
-                   originalMatrix_S = jsonData.slice(1)
-                                       .filter(row => row.slice(1, factors.length + 1).some(cell => cell !== null && cell !== undefined && cell !== "")) 
-                                       .map(row => row.slice(1, factors.length + 1).map(cell => {
-                                           const num = Number(cell);
-                                           return isNaN(num) ? 0 : num; 
-                                       }));
-                   if (factors.length === 0 ) {
-                        showMessage("Excel 檔案格式錯誤：未能解析到有效的因素名稱。請確保第一行包含因素名稱。");
-                        return;
-                   }
-                   if (originalMatrix_S.length === 0 && factors.length > 0) {
-                       showMessage("Excel 檔案格式錯誤：未能解析到有效的數據。請確保因素名稱下方有對應的影響值。");
-                       return;
-                   }
-                   if (originalMatrix_S.length !== factors.length || originalMatrix_S.some(row => row.length !== factors.length)) {
-                       showMessage(`Excel 檔案格式錯誤：因素數量 (${factors.length}) 與數據矩陣維度 (${originalMatrix_S.length}x${originalMatrix_S[0] ? originalMatrix_S[0].length : 0}) 不符。請確保資料為方陣且與因素數量一致。`);
-                       factors = []; 
-                       originalMatrix_S = [];
-                       return;
-                   }
-                   let diagonalOk = true;
-                   for (let i = 0; i < originalMatrix_S.length; i++) {
-                       if (originalMatrix_S[i][i] !== 0) {
-                           diagonalOk = false;
-                       }
-                       for (let j = 0; j < originalMatrix_S[i].length; j++) {
-                           if (isNaN(originalMatrix_S[i][j])) {
-                               showMessage(`錯誤：矩陣中因素 "${factors[i]}" 對因素 "${factors[j]}" 的影響值 ("${jsonData[i+1]?.[j+1]}") 不是一個有效的數字。已暫時視為0，請修正檔案。`);
-                               originalMatrix_S[i][j] = 0; 
-                           }
-                       }
-                   }
-                   if (!diagonalOk) {
-                        showMessage("警告：直接關係矩陣的對角線元素應為 0。請檢查並修正資料，或確認後系統將以0計算。", "warn");
-                   }
-                   displayMatrix(originalMatrixContainer, originalMatrix_S, factors, true, "S");
-                   setSectionVisibility(matrixDisplaySection, true);
-                   setSectionVisibility(resultsSection, false); 
-                   fileNameDisplay.textContent = `已載入檔案：${file.name}`;
-                    if (causalChart) { 
-                       causalChart.destroy();
-                       causalChart = null;
-                   }
-                   causalDiagramMessage.textContent = ""; 
-                   calculatedThresholdDisplay.textContent = ""; 
-                   typesetMathJax(); 
-               } catch (error) {
-                   console.error("檔案解析錯誤:", error);
-                   showMessage("檔案解析失敗，請確認檔案格式是否正確。錯誤：" + error.message);
-                   setSectionVisibility(matrixDisplaySection, false);
-               }
-           };
-           reader.onerror = function(error) {
-               console.error("檔案讀取錯誤:", error);
-               showMessage("檔案讀取時發生錯誤。");
-           };
-           reader.readAsArrayBuffer(file);
-       }
-
-       function displayMatrix(container, matrix, labels, editable = false, matrixName = "") {
-           container.innerHTML = ''; 
-           if (!matrix || matrix.length === 0 || !labels || labels.length === 0) {
-               container.innerHTML = '<p class="text-gray-500 p-4">沒有資料可顯示。</p>';
-               return;
-           }
-           const table = document.createElement('table');
-           const thead = document.createElement('thead');
-           const tbody = document.createElement('tbody');
-           let headerRowHTML = `<tr><th>${matrixName}</th>`; 
-           labels.forEach(label => headerRowHTML += `<th>${label}</th>`);
-           headerRowHTML += '</tr>';
-           thead.innerHTML = headerRowHTML;
-           let tbodyHTML = '';
-           matrix.forEach((row, i) => {
-               const rowLabel = labels[i] !== undefined ? labels[i] : `因素 ${i+1}`;
-               tbodyHTML += `<tr><th>${rowLabel}</th>`; 
-               row.forEach((cell, j) => {
-                   if (editable) {
-                       tbodyHTML += `<td><input type="number" value="${cell}" data-row="${i}" data-col="${j}" class="matrix-input w-16 text-center border rounded p-1"></td>`;
-                   } else {
-                       tbodyHTML += `<td>${typeof cell === 'number' ? (isNaN(cell) ? "N/A" : cell.toFixed(4)) : cell}</td>`;
-                   }
-               });
-               tbodyHTML += '</tr>';
-           });
-           tbody.innerHTML = tbodyHTML;
-           table.appendChild(thead);
-           table.appendChild(tbody);
-           container.appendChild(table);
-           if (editable) {
-               document.querySelectorAll('.matrix-input').forEach(input => {
-                   input.addEventListener('change', (e) => {
-                       const r = parseInt(e.target.dataset.row);
-                       const c = parseInt(e.target.dataset.col);
-                       const value = parseFloat(e.target.value);
-                       if (!isNaN(value)) {
-                           originalMatrix_S[r][c] = value;
-                           if (r === c && value !== 0) {
-                               showMessage(`提醒：對角線元素 (${factors[r]}) 已被修改為 ${value}，DEMATEL 要求對角線為0。`, "info");
-                           }
-                       } else {
-                           showMessage("輸入值無效，請輸入數字。");
-                           e.target.value = originalMatrix_S[r][c]; 
-                       }
-                   });
-               });
-           }
-       }
-
-       confirmMatrixButton.addEventListener('click', () => {
-           if (originalMatrix_S.length === 0) {
-               showMessage("沒有有效的矩陣資料可以計算。");
-               return;
-           }
-           let diagonalCorrected = false;
-           for (let i = 0; i < originalMatrix_S.length; i++) {
-               if (originalMatrix_S[i][i] !== 0) {
-                    if (!diagonalCorrected) { 
-                       showMessage(`注意：部分或所有對角線值非0，已自動設為 0 以符合 DEMATEL 計算要求。`, "info");
-                       diagonalCorrected = true;
-                    }
-                    originalMatrix_S[i][i] = 0;
-               }
-           }
-           if (diagonalCorrected) {
-               displayMatrix(originalMatrixContainer, originalMatrix_S, factors, true, "S"); 
-           }
-           performDematelCalculations(); 
-           if (totalRelationshipMatrix_T && totalRelationshipMatrix_T.length > 0 && !totalRelationshipMatrix_T.flat().some(isNaN)) {
-                setSectionVisibility(resultsSection, true);
-                showMessage("DEMATEL 計算完成！", "success");
-                updateThresholdValue(); 
-                drawCausalDiagram(factors, D_plus_R, D_minus_R); 
-                typesetMathJax(); 
-           } else {
-               setSectionVisibility(resultsSection, true); 
-               normalizedMatrixContainer.innerHTML = '<p class="text-red-500 p-4">正規化矩陣計算失敗或包含無效數據。</p>';
-               totalRelationshipMatrixContainer.innerHTML = '<p class="text-red-500 p-4">全關係矩陣計算失敗或包含無效數據。</p>';
-               indicatorsContainer.innerHTML = '<p class="text-red-500 p-4">指標計算失敗。</p>';
-               causalDiagramMessage.textContent = "因數據問題，無法繪製因果圖。";
-               calculatedThresholdDisplay.textContent = "無法計算臨界值";
-                if (causalChart) { causalChart.destroy(); causalChart = null; } 
-           }
-       });
-
-       function performDematelCalculations() {
-           if (originalMatrix_S.length === 0) return; 
-           const n = originalMatrix_S.length;
-           try {
-               const rowSums = originalMatrix_S.map(row => row.reduce((sum, val) => sum + val, 0));
-               const maxRowSum = Math.max(...rowSums);
-               if (maxRowSum === 0 && originalMatrix_S.flat().every(val => val === 0)) {
-                    showMessage("注意：原始矩陣所有元素均為零。正規化結果將為全零矩陣。", "warn");
-                    normalizedMatrix_X = originalMatrix_S.map(row => row.map(() => 0));
-               } else if (maxRowSum === 0) { 
-                   showMessage("錯誤：原始矩陣行和的最大值為零（但並非所有元素都為零），無法進行標準正規化。請檢查數據。", "error");
-                   normalizedMatrix_X = originalMatrix_S.map(row => row.map(() => NaN)); 
-               } else if (maxRowSum < 0) { 
-                    showMessage("錯誤：原始矩陣行和的最大值為負數，不符合DEMATEL影響程度定義。請檢查數據。", "error");
-                   normalizedMatrix_X = originalMatrix_S.map(row => row.map(() => NaN));
-               } else {
-                   normalizedMatrix_X = originalMatrix_S.map(row =>
-                       row.map(cell => cell / maxRowSum)
-                   );
-               }
-           } catch (e) {
-               showMessage(`正規化計算錯誤: ${e.message}`, "error");
-               normalizedMatrix_X = []; 
-               totalRelationshipMatrix_T = []; 
-           }
-           displayMatrix(normalizedMatrixContainer, normalizedMatrix_X, factors, false, "X");
-           if (normalizedMatrix_X.length > 0 && !normalizedMatrix_X.flat().some(isNaN)) { 
-               try {
-                   const I = math.identity(n).toArray(); 
-                   const I_minus_X = math.subtract(I, normalizedMatrix_X);
-                   const det_I_minus_X = math.det(I_minus_X);
-                   if (Math.abs(det_I_minus_X) < 1e-9) { 
-                        showMessage("警告：(I-X) 矩陣的行列式 (" + det_I_minus_X.toExponential(3) + ") 接近於零，可能為奇異矩陣。逆矩陣結果可能不穩定或不準確。", "warn");
-                   }
-                   const I_minus_X_inv = math.inv(I_minus_X);
-                   totalRelationshipMatrix_T = math.multiply(normalizedMatrix_X, I_minus_X_inv);
-                   if (totalRelationshipMatrix_T.some(row => row.some(val => isNaN(val) || !isFinite(val)))) {
-                       showMessage("錯誤：計算出的全關係矩陣 T 包含無效值 (NaN/Infinity)。這通常意味著 (I-X) 矩陣不可逆或計算不穩定。請檢查原始數據的合理性。", "error");
-                        totalRelationshipMatrix_T = normalizedMatrix_X.map(row => row.map(() => NaN)); 
-                   }
-               } catch (error) { 
-                   console.error("計算全關係矩陣 T 時出錯:", error);
-                   showMessage(`計算全關係矩陣 T 失敗: ${error.message}. (I-X)可能不可逆。請檢查原始數據。`, "error");
-                   totalRelationshipMatrix_T = normalizedMatrix_X.map(row => row.map(() => NaN)); 
-               }
-           } else {
-                totalRelationshipMatrix_T = []; 
-                if (normalizedMatrix_X.flat().some(isNaN)) { 
-                    showMessage("由於正規化失敗，無法計算全關係矩陣 T。", "error");
                 }
-           }
-           displayMatrix(totalRelationshipMatrixContainer, totalRelationshipMatrix_T, factors, false, "T");
-           calculateAndDisplayIndicators(totalRelationshipMatrix_T);
-       }
 
-       function calculateAndDisplayIndicators(matrixT) {
-           if (!matrixT || matrixT.length === 0 || matrixT.flat().some(isNaN)) {
-               indicatorsContainer.innerHTML = '<p class="text-red-500 p-4">無法計算指標，全關係矩陣 T 包含無效數據或計算失敗。</p>';
-               D_values = []; R_values = []; D_plus_R = []; D_minus_R = [];
-               return;
-           }
-           const n = matrixT.length;
-           D_values = matrixT.map(row => row.reduce((sum, val) => sum + (isNaN(val) ? 0 : val), 0)); 
-           R_values = math.transpose(matrixT).map(col => col.reduce((sum, val) => sum + (isNaN(val) ? 0 : val), 0));
-           D_plus_R = D_values.map((d, i) => d + R_values[i]);
-           D_minus_R = D_values.map((d, i) => d - R_values[i]);
-           const indicatorsTable = document.createElement('table');
-           let tableHTML = `<thead><tr class="text-xs text-gray-700 uppercase bg-gray-50">
-                               <th>因素</th>
-                               <th>影響度 (D)</th>
-                               <th>受影響度 (R)</th>
-                               <th>中心度 (D+R)</th>
-                               <th>原因度 (D-R)</th>
-                            </tr></thead><tbody>`;
-           factors.forEach((factor, i) => {
-               tableHTML += `<tr>
-                               <th>${factor}</th>
-                               <td>${D_values[i].toFixed(4)}</td>
-                               <td>${R_values[i].toFixed(4)}</td>
-                               <td>${D_plus_R[i].toFixed(4)}</td>
-                               <td>${D_minus_R[i].toFixed(4)}</td>
-                             </tr>`;
-           });
-           tableHTML += `</tbody>`;
-           indicatorsTable.innerHTML = tableHTML;
-           indicatorsContainer.innerHTML = ''; 
-           indicatorsContainer.appendChild(indicatorsTable);
-       }
+                const notesData = localStorage.getItem(Utils.getLocalStorageKey('notes'));
+                AppState.notes = notesData ? notesData : '';
+                if (UIElements.scheduleNotesTextarea) UIElements.scheduleNotesTextarea.value = AppState.notes;
 
-       thresholdTypeSelect.addEventListener('change', function() {
-           if (this.value === 'custom') {
-               customThresholdInputContainer.classList.remove('hidden'); 
-               customThresholdValueInput.value = ''; 
-               calculatedThresholdDisplay.textContent = '請輸入自訂臨界值'; 
-               currentThresholdValue = null; 
-           } else {
-               customThresholdInputContainer.classList.add('hidden'); 
-               updateThresholdValue(); 
-           }
-       });
+                const holidaysData = localStorage.getItem(Utils.getLocalStorageKey('holidays_all'));
+                AppState.holidays = holidaysData ? JSON.parse(holidaysData) : {};
 
-       customThresholdValueInput.addEventListener('input', function() { 
-           if (thresholdTypeSelect.value === 'custom') {
-               const val = parseFloat(this.value);
-               if (!isNaN(val)) {
-                   currentThresholdValue = val;
-                   calculatedThresholdDisplay.textContent = `目前使用自訂臨界值: ${currentThresholdValue.toFixed(4)}`;
-               } else {
-                   currentThresholdValue = null;
-                   calculatedThresholdDisplay.textContent = `自訂臨界值無效`;
-               }
-           }
-       });
-       
-       function updateThresholdValue() {
-           if (!totalRelationshipMatrix_T || totalRelationshipMatrix_T.length === 0 || totalRelationshipMatrix_T.flat().some(isNaN)) {
-               calculatedThresholdDisplay.textContent = "無法計算臨界值 (T矩陣無效)";
-               currentThresholdValue = null;
-               return;
-           }
-           const allValues = totalRelationshipMatrix_T.flat().filter(v => !isNaN(v) && isFinite(v) && v !== null); 
-           if (allValues.length === 0) {
-               calculatedThresholdDisplay.textContent = "無法計算臨界值 (T矩陣無有效數據)";
-               currentThresholdValue = null;
-               return;
-           }
-           const type = thresholdTypeSelect.value;
-           let threshold;
-           let displayText = "計算方式: ";
-           if (type === 'average') {
-               threshold = allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
-               displayText += `平均值 = ${threshold.toFixed(4)}`;
-           } else if (type === 'median') {
-               const sortedValues = [...allValues].sort((a, b) => a - b); 
-               const mid = Math.floor(sortedValues.length / 2);
-               threshold = sortedValues.length % 2 !== 0 ? sortedValues[mid] : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
-               displayText += `中位數 = ${threshold.toFixed(4)}`;
-           } else if (type === 'custom') {
-               const customVal = parseFloat(customThresholdValueInput.value);
-               if (!isNaN(customVal)) {
-                   threshold = customVal;
-                   displayText = `目前使用自訂臨界值: ${threshold.toFixed(4)}`;
-               } else {
-                   displayText = "自訂臨界值無效，請輸入數字";
-                   currentThresholdValue = null; 
-                   calculatedThresholdDisplay.textContent = displayText;
-                   return; 
-               }
-           } else { 
-                displayText = "未選擇計算方式";
-                threshold = null;
-           }
-           currentThresholdValue = threshold;
-           calculatedThresholdDisplay.textContent = displayText;
-       }
-
-       function drawCausalDiagram(labels, dPlusRData, dMinusRData) {
-           if (causalChart) { 
-               causalChart.destroy(); 
-           }
-           if (!labels || !dPlusRData || !dMinusRData || labels.length === 0 || dPlusRData.length !== labels.length || dMinusRData.length !== labels.length || dPlusRData.some(isNaN) || dMinusRData.some(isNaN)) {
-               causalDiagramMessage.textContent = "因數據不足或計算錯誤，無法繪製因果圖。";
-               causalDiagramCanvas.style.display = 'none'; 
-               return;
-           }
-           causalDiagramCanvas.style.display = 'block'; 
-           causalDiagramMessage.textContent = ""; 
-           const datasets = labels.map((label, index) => {
-               return {
-                   label: label, 
-                   data: [{
-                       x: dPlusRData[index],
-                       y: dMinusRData[index],
-                       factorLabel: label 
-                   }],
-                   backgroundColor: chartColors[index % chartColors.length], 
-                   borderColor: chartColors[index % chartColors.length], 
-                   borderWidth: 1,
-                   pointRadius: 7, 
-                   pointHoverRadius: 9,
-                   pointStyle: 'circle' 
-               };
-           });
-           const data = {
-               datasets: datasets
-           };
-           const config = {
-               type: 'scatter',
-               data: data,
-               options: {
-                   responsive: true,
-                   maintainAspectRatio: false, 
-                   scales: {
-                       x: {
-                           type: 'linear',
-                           position: 'bottom',
-                           title: {
-                               display: true,
-                               text: '中心度 (D+R) Prominence',
-                               font: { size: 14 }
-                           }
-                       },
-                       y: {
-                           type: 'linear',
-                           position: 'left',
-                           title: {
-                               display: true,
-                               text: '原因度 (D-R) Relation',
-                               font: { size: 14 }
-                           }
-                       }
-                   },
-                   plugins: {
-                       legend: {
-                           display: true,
-                           position: 'right', 
-                            labels: {
-                               usePointStyle: true, 
-                               padding: 15, 
-                               font: {
-                                   size: 11
-                               }
-                           }
-                       },
-                       tooltip: {
-                           callbacks: {
-                               label: function(context) {
-                                   let label = context.dataset.data[0].factorLabel || '';
-                                   if (label) {
-                                       label += ': ';
-                                   }
-                                   label += `(D+R: ${context.parsed.x.toFixed(3)}, D-R: ${context.parsed.y.toFixed(3)})`;
-                                   return label;
-                               }
-                           }
-                       }
-                   },
-               }
-           };
-           causalChart = new Chart(causalDiagramCanvas, config);
-       }
-
-       reUploadButton.addEventListener('click', () => {
-           excelFileInput.value = ''; 
-           fileNameDisplay.textContent = '';
-           setSectionVisibility(matrixDisplaySection, false);
-           setSectionVisibility(resultsSection, false);
-           originalMatrixContainer.innerHTML = '';
-           normalizedMatrixContainer.innerHTML = '';
-           totalRelationshipMatrixContainer.innerHTML = '';
-           indicatorsContainer.innerHTML = '';
-           thresholdTypeSelect.value = 'average'; 
-           customThresholdInputContainer.classList.add('hidden');
-           customThresholdValueInput.value = '';
-           calculatedThresholdDisplay.textContent = '';
-           currentThresholdValue = null;
-           factors = [];
-           originalMatrix_S = [];
-           normalizedMatrix_X = [];
-           totalRelationshipMatrix_T = [];
-           D_values = []; R_values = []; D_plus_R = []; D_minus_R = [];
-           if (causalChart) { 
-               causalChart.destroy();
-               causalChart = null;
-           }
-           causalDiagramMessage.textContent = "";
-           causalDiagramCanvas.style.display = 'none';
-           showMessage("請重新上傳檔案。", "info");
-       });
-
-       analyzeNewButton.addEventListener('click', () => {
-           reUploadButton.click(); 
-       });
-
-       exportResultsButton.addEventListener('click', () => {
-           if (factors.length === 0) {
-               showMessage("沒有可匯出的結果。");
-               return;
-           }
-           try {
-               const wb = XLSX.utils.book_new(); 
-               const formatNumber = (val) => (typeof val === 'number' && !isNaN(val) && isFinite(val)) ? val.toFixed(4) : (isNaN(val) ? "計算錯誤" : (val === undefined || val === null ? "" : val) );
-               if (originalMatrix_S.length > 0) {
-                   const ws_data_s = [
-                       ['原始關係矩陣 S', ...factors], 
-                       ...originalMatrix_S.map((row, i) => [factors[i], ...row.map(cell => (typeof cell === 'number' && !isNaN(cell)) ? cell : cell )]) 
-                   ];
-                   const ws_s = XLSX.utils.aoa_to_sheet(ws_data_s);
-                   XLSX.utils.book_append_sheet(wb, ws_s, "1. 原始關係矩陣S");
-               }
-               if (normalizedMatrix_X.length > 0) {
-                   const ws_data_x = [
-                       ['正規化矩陣 X', ...factors],
-                       ...normalizedMatrix_X.map((row, i) => [factors[i], ...row.map(formatNumber)])
-                   ];
-                   const ws_x = XLSX.utils.aoa_to_sheet(ws_data_x);
-                   XLSX.utils.book_append_sheet(wb, ws_x, "2. 正規化矩陣X");
-               }
-               if (totalRelationshipMatrix_T.length > 0) {
-                   const ws_data_t = [
-                       ['全關係矩陣 T', ...factors],
-                       ...totalRelationshipMatrix_T.map((row, i) => [factors[i], ...row.map(formatNumber)])
-                   ];
-                   const ws_t = XLSX.utils.aoa_to_sheet(ws_data_t);
-                   XLSX.utils.book_append_sheet(wb, ws_t, "3. 全關係矩陣T");
-               }
-               if (D_values.length > 0) {
-                   const indicatorsData = [
-                       ['因素', '影響度 (D)', '受影響度 (R)', '中心度 (D+R)', '原因度 (D-R)'],
-                       ...factors.map((factor, i) => [
-                           factor,
-                           formatNumber(D_values[i]),
-                           formatNumber(R_values[i]),
-                           formatNumber(D_plus_R[i]),
-                           formatNumber(D_minus_R[i])
-                       ])
-                   ];
-                   const ws_indicators = XLSX.utils.aoa_to_sheet(indicatorsData);
-                   XLSX.utils.book_append_sheet(wb, ws_indicators, "4. 各項指標");
-               }
-               let thresholdToExportDisplayValue;
-               let thresholdTypeToExport = thresholdTypeSelect.options[thresholdTypeSelect.selectedIndex].text;
-               if (currentThresholdValue === null || isNaN(currentThresholdValue)) {
-                   if (thresholdTypeSelect.value === 'custom' && customThresholdValueInput.value.trim() === '') {
-                       thresholdToExportDisplayValue = "自訂值未輸入";
-                   } else if (thresholdTypeSelect.value === 'custom' && isNaN(parseFloat(customThresholdValueInput.value))) {
-                       thresholdToExportDisplayValue = "自訂值無效";
-                   } else { 
-                       thresholdToExportDisplayValue = "未計算/計算失敗";
-                   }
-               } else {
-                   thresholdToExportDisplayValue = formatNumber(currentThresholdValue); 
-               }
-               const ws_data_threshold = [['參數', '數值'], [`臨界值計算方式 (${thresholdTypeToExport})`, thresholdToExportDisplayValue]];
-               const ws_threshold = XLSX.utils.aoa_to_sheet(ws_data_threshold);
-               XLSX.utils.book_append_sheet(wb, ws_threshold, "5. 臨界值");
-               const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-               const dataBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8" });
-               saveAs(dataBlob, "DEMATEL分析結果.xlsx");
-               showMessage("結果已成功匯出為 Excel 檔案。", "success");
-           } catch (error) {
-               console.error("匯出 Excel 失敗:", error);
-               showMessage("匯出 Excel 失敗：" + error.message);
-           }
-       });
-
-       let messageTimeout;
-       function showMessage(message, type = "error") { 
-           messageText.textContent = message;
-           messageBox.classList.remove('bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'text-black', 'bg-red-500', 'message-box-exit', 'message-box-initial');
-           messageBox.style.display = 'block'; 
-           if (type === "success") {
-               messageBox.classList.add('bg-green-500');
-           } else if (type === "info") {
-               messageBox.classList.add('bg-blue-500');
-           } else if (type === "warn" || type === "warning") { 
-                messageBox.classList.add('bg-yellow-500', 'text-black'); 
-           } else { 
-               messageBox.classList.add('bg-red-500');
-           }
-           requestAnimationFrame(() => { 
-            messageBox.classList.add('message-box-enter');
-           });
-           clearTimeout(messageTimeout); 
-           messageTimeout = setTimeout(() => {
-               messageBox.classList.remove('message-box-enter');
-               messageBox.classList.add('message-box-exit');
-                setTimeout(() => {
-                    messageBox.style.display = 'none';
-                    messageBox.classList.remove('message-box-exit'); 
-                    messageBox.classList.add('message-box-initial'); 
-                }, 300); 
-           }, 4700); 
-       }
-
-       function typesetMathJax() {
-            if (window.MathJax && MathJax.Hub && MathJax.Hub.Queue) {
-                const methodologySection = document.getElementById('methodologySection');
-                if (methodologySection) {
-                    MathJax.Hub.Queue(["Typeset", MathJax.Hub, methodologySection]);
+            } catch (e) { console.error("Error loading data:", e); Utils.showCustomAlert("讀取資料時發生錯誤。", "error"); }
+        },
+        saveDataForCurrentMonth: () => { 
+            try {
+                localStorage.setItem(Utils.getLocalStorageKey('shifts'), JSON.stringify(AppState.shifts));
+                localStorage.setItem(Utils.getLocalStorageKey('notes'), AppState.notes);
+                localStorage.setItem(Utils.getLocalStorageKey('holidays_all'), JSON.stringify(AppState.holidays));
+            } catch (e) { console.error("Error saving data:", e); Utils.showCustomAlert("儲存資料時發生錯誤。", "error"); }
+        },
+        clearCurrentMonthItinerary: () => { 
+            // This function should ideally use a custom confirmation modal instead of window.confirm
+            // For now, keeping the existing confirm for brevity of this specific change.
+            const currentMonthPrefix = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}`;
+            let itemsCleared = false;
+            for (const dateKey in AppState.shifts) {
+                if (dateKey.startsWith(currentMonthPrefix)) {
+                    if (AppState.shifts[dateKey] && AppState.shifts[dateKey].length > 0) itemsCleared = true;
+                    delete AppState.shifts[dateKey];
                 }
             }
+            AppState.notes = "";
+            if (UIElements.scheduleNotesTextarea) UIElements.scheduleNotesTextarea.value = "";
+            DataStorage.saveDataForCurrentMonth();
+            Calendar.render(); // Refresh calendar view
+            if (AppState.currentView === 'day' && AppState.selectedDayForDayView && AppState.selectedDayForDayView.startsWith(currentMonthPrefix)) {
+                DayView.renderDayViewItems(AppState.selectedDayForDayView); // Refresh day view if it's the current month
+            }
+            Utils.showCustomAlert(itemsCleared || AppState.notes === "" ? `已清除 ${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的行程表資料與備註。` : `${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的行程表無資料可清除。`, itemsCleared || AppState.notes === "" ? "success" : "info");
         }
-       document.addEventListener('DOMContentLoaded', () => {
-            setSectionVisibility(matrixDisplaySection, false);
-            setSectionVisibility(resultsSection, false);
-            messageBox.classList.add('message-box-initial'); 
-            messageBox.style.display = 'none'; 
-            typesetMathJax(); 
-       });
-   </script>
+    };
+    
+    // HolidayImporter
+    const HolidayImporter = { 
+        parseICS: (icsContent) => {
+            const lines = icsContent.split(/\r\n|\n|\r/);
+            let inEvent = false;
+            let currentEvent = { DTSTART_val: null, DTEND_val: null, SUMMARY_val: null };
+            let newHolidays = {};
+
+            const parseDateFromICSLine = (line) => {
+                if (!line) return null;
+                const dateStrPart = line.substring(line.indexOf(':') + 1);
+                // Handle both VALUE=DATE:YYYYMMDD and YYYYMMDDTHHMMSSZ formats
+                const actualDateStr = dateStrPart.includes('VALUE=DATE:') ? dateStrPart.substring('VALUE=DATE:'.length) : dateStrPart;
+                if (actualDateStr.length < 8) return null; // Must have at least YYYYMMDD
+                const year = parseInt(actualDateStr.substring(0, 4));
+                const month = parseInt(actualDateStr.substring(4, 6)) - 1; // Month is 0-indexed
+                const day = parseInt(actualDateStr.substring(6, 8));
+
+                if (isNaN(year) || isNaN(month) || isNaN(day) || month < 0 || month > 11 || day < 1 || day > 31) {
+                     console.warn("Invalid date parsed from ICS:", actualDateStr); return null;
+                }
+                return new Date(Date.UTC(year, month, day)); // Use UTC to avoid timezone issues with dates
+            };
+
+            const formatDateToKey = (dateObj) => {
+                if (!dateObj) return null;
+                const year = dateObj.getUTCFullYear();
+                const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getUTCDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            for (const line of lines) {
+                if (line.toUpperCase().startsWith('BEGIN:VEVENT')) {
+                    inEvent = true;
+                    currentEvent = { DTSTART_val: null, DTEND_val: null, SUMMARY_val: null };
+                } else if (line.toUpperCase().startsWith('END:VEVENT')) {
+                    if (inEvent && currentEvent.DTSTART_val && currentEvent.SUMMARY_val) {
+                        let startDate = currentEvent.DTSTART_val;
+                        let endDate = currentEvent.DTEND_val;
+
+                        // If DTEND is not present or is same as DTSTART (for all-day events), treat as single day event
+                        // ICS standard: For an all-day event, DTEND is often the start of the next day.
+                        // We want to include the start day.
+                        if (!endDate || endDate.getTime() <= startDate.getTime()) {
+                            const formattedDate = formatDateToKey(startDate);
+                            if (formattedDate) newHolidays[formattedDate] = currentEvent.SUMMARY_val;
+                        } else {
+                            // For multi-day events, iterate from DTSTART up to, but not including, DTEND
+                            let currentDate = new Date(startDate.getTime());
+                            while (currentDate.getTime() < endDate.getTime()) { // Loop while current is before end
+                                const formattedDate = formatDateToKey(currentDate);
+                                if (formattedDate) newHolidays[formattedDate] = currentEvent.SUMMARY_val;
+                                currentDate.setUTCDate(currentDate.getUTCDate() + 1); // Move to next day
+                            }
+                        }
+                    }
+                    inEvent = false;
+                } else if (inEvent) {
+                    if (line.toUpperCase().startsWith('DTSTART')) {
+                        currentEvent.DTSTART_val = parseDateFromICSLine(line);
+                    } else if (line.toUpperCase().startsWith('DTEND')) {
+                        currentEvent.DTEND_val = parseDateFromICSLine(line);
+                    } else if (line.toUpperCase().startsWith('SUMMARY')) {
+                        currentEvent.SUMMARY_val = line.substring(line.indexOf(':') + 1).trim();
+                    }
+                }
+            }
+            return newHolidays;
+        },
+        triggerHolidayImport: () => {
+            const fileInput = document.getElementById('holidayFileImport');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                Utils.showCustomAlert("請先選擇一個 .ics 假期檔案。", "info");
+                return;
+            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedHolidays = HolidayImporter.parseICS(e.target.result);
+                    if (Object.keys(importedHolidays).length > 0) {
+                        AppState.holidays = { ...AppState.holidays, ...importedHolidays }; // Merge with existing
+                        DataStorage.saveDataForCurrentMonth(); // Save all holidays
+                        Calendar.render();
+                        if (AppState.currentView === 'day' && AppState.selectedDayForDayView) {
+                            DayView.renderDayViewItems(AppState.selectedDayForDayView);
+                        }
+                        Utils.showCustomAlert(`成功匯入 ${Object.keys(importedHolidays).length} 個假期。`, "success");
+                        fileInput.value = ""; // Clear file input
+                    } else {
+                        Utils.showCustomAlert("未在檔案中找到有效的假期事件。", "info");
+                        fileInput.value = "";
+                    }
+                } catch (err) {
+                    console.error("Error parsing holiday file:", err);
+                    Utils.showCustomAlert("解析假期檔案時發生錯誤。", "error");
+                    fileInput.value = "";
+                }
+            };
+            reader.onerror = () => {
+                Utils.showCustomAlert("讀取假期檔案時發生錯誤。", "error");
+                fileInput.value = "";
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    // Calendar
+    const Calendar = { 
+        render: () => {
+            if (!UIElements.monthYearDisplay || !UIElements.calendarGrid) return;
+            UIElements.calendarGrid.innerHTML = ''; 
+            const firstDayOfMonth = new Date(AppState.currentYear, AppState.currentMonth, 1);
+            const lastDayOfMonth = new Date(AppState.currentYear, AppState.currentMonth + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+            const dayOfWeek = firstDayOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
+            
+            UIElements.monthYearDisplay.textContent = `${AppState.currentYear}年 ${AppState.currentMonth + 1}月`;
+
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+            dayNames.forEach(name => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'text-center font-semibold text-sm py-2 bg-slate-100 rounded-t-md';
+                dayHeader.textContent = name;
+                UIElements.calendarGrid.appendChild(dayHeader);
+            });
+
+            for (let i = 0; i < dayOfWeek; i++) { // Blank cells for days before the 1st
+                const blankCell = document.createElement('div');
+                blankCell.className = 'calendar-day border border-slate-200 bg-slate-50 rounded-md';
+                UIElements.calendarGrid.appendChild(blankCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                const dateStr = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const currentDate = new Date(AppState.currentYear, AppState.currentMonth, day);
+                const currentDayOfWeek = currentDate.getDay();
+                const isWeekend = currentDayOfWeek === 0 || currentDayOfWeek === 6;
+                const holidayName = AppState.holidays[dateStr];
+                const isVisuallySpecialDay = holidayName || isWeekend;
+
+                dayCell.className = 'calendar-day border border-slate-200 p-2 rounded-md cursor-pointer';
+                dayCell.dataset.date = dateStr;
+
+                const dayNumber = document.createElement('span');
+                dayNumber.className = 'text-sm font-medium self-start';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                if (isVisuallySpecialDay) dayNumber.classList.add('font-bold', 'text-red-700');
+                else dayNumber.classList.remove('font-bold', 'text-red-700');
+                
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'day-content-wrapper';
+
+                const itineraryItemsForDay = AppState.shifts[dateStr] || [];
+                dayCell.classList.remove('filtered-out'); // For potential future filtering
+
+                if (itineraryItemsForDay.length > 0) {
+                    const firstItem = itineraryItemsForDay[0];
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'itinerary-item-display';
+                    let displayText = firstItem.startTime ? `${firstItem.startTime} ` : "";
+                    try {
+                        displayText += (typeof marked !== 'undefined' && marked.parse) ? marked.parse(firstItem.description || "").trim().replace(/<p>|<\/p>/g, "") : (firstItem.description || "").trim();
+                    } catch (e) { displayText += firstItem.description || ""; }
+                    itemDiv.innerHTML = displayText;
+                    itemDiv.title = firstItem.description; // Full description on hover
+                    contentWrapper.appendChild(itemDiv);
+
+                    if (itineraryItemsForDay.length > 1) {
+                        const itemCountSpan = document.createElement('span');
+                        itemCountSpan.className = 'itinerary-item-count';
+                        itemCountSpan.textContent = `+${itineraryItemsForDay.length - 1}`;
+                        dayCell.appendChild(itemCountSpan); // Append to dayCell directly for positioning
+                    }
+                }
+                
+                dayCell.addEventListener('click', (event) => {
+                     // If clicked on item summary or count, open modal for that day (legacy behavior or quick edit)
+                    if (event.target.closest('.itinerary-item-display') || event.target.closest('.itinerary-item-count')) {
+                        UI.openItineraryItemModal(dateStr); // Opens modal for managing items of this day
+                    } else {
+                        // Clicked on the day cell background or day number, open Day View
+                        DayView.openDayView(dateStr);
+                    }
+                });
+                dayCell.addEventListener('mouseenter', (event) => UI.showTooltip(event, dateStr));
+                dayCell.addEventListener('mouseleave', UI.hideTooltip);
+                dayCell.appendChild(contentWrapper);
+
+
+                if (holidayName) {
+                    const holidaySpan = document.createElement('div');
+                    holidaySpan.textContent = holidayName.charAt(0); // Show first char, full name on title
+                    holidaySpan.title = holidayName;
+                    holidaySpan.className = 'holiday-info text-red-600 font-semibold';
+                    contentWrapper.appendChild(holidaySpan); // Append to content wrapper
+                }
+                UIElements.calendarGrid.appendChild(dayCell);
+            }
+
+            const totalCells = dayOfWeek + daysInMonth;
+            const remainingCells = (7 - (totalCells % 7)) % 7;
+            for (let i = 0; i < remainingCells; i++) { // Blank cells after last day
+                const blankCell = document.createElement('div');
+                blankCell.className = 'calendar-day border border-slate-200 bg-slate-50 rounded-md';
+                UIElements.calendarGrid.appendChild(blankCell);
+            }
+        },
+        changeMonth: (offset) => { 
+            if (UIElements.scheduleNotesTextarea) {
+                AppState.notes = UIElements.scheduleNotesTextarea.value; // Save notes for the *previous* month
+            }
+            DataStorage.saveDataForCurrentMonth(); // Save shifts and notes of the month we are leaving
+
+            AppState.currentMonth += offset;
+            if (AppState.currentMonth < 0) {
+                AppState.currentMonth = 11;
+                AppState.currentYear--;
+            } else if (AppState.currentMonth > 11) {
+                AppState.currentMonth = 0;
+                AppState.currentYear++;
+            }
+            DataStorage.loadDataForCurrentMonth(); // Load data for the *new* month
+            Calendar.render();
+        }
+    };
+
+    // ScheduleParser
+    const ScheduleParser = { 
+        parseTextToIntermediateData: (text, inputYear, inputMonth_1_indexed) => {
+            const lines = text.split('\n').map(line => line.trim());
+            let yearToUse = inputYear;
+            let monthToUse_0_indexed = inputMonth_1_indexed !== null ? inputMonth_1_indexed - 1 : null; // 0-indexed for JS Date
+            let tempShifts = {};
+            let tempNotesFromParser = "";
+
+            // Attempt to find a year/month declaration in the text first
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                // Matches "YYYY年MM月" or "YY年MM月" (ROC or AD short)
+                const yearMonthMatch = line.match(/(\d+)\s*年\s*(\d+)\s*月/);
+                if (yearMonthMatch) {
+                    let parsedYearFromText = parseInt(yearMonthMatch[1]);
+                    // Heuristic for ROC year: if < 200 and > 90, assume ROC and convert
+                    if (parsedYearFromText < 200 && parsedYearFromText > 90) parsedYearFromText += 1911; // Convert ROC to AD
+                    yearToUse = parsedYearFromText;
+                    monthToUse_0_indexed = parseInt(yearMonthMatch[2]) - 1; // Convert to 0-indexed
+                    lines.splice(i, 1); i--; // Remove this line and adjust index
+                    break; // Found year/month, stop searching
+                }
+            }
+            
+            // If no year/month found in text, use provided or current AppState
+            if (yearToUse === null || yearToUse === undefined || isNaN(yearToUse)) yearToUse = AppState.currentYear;
+            if (monthToUse_0_indexed === null || monthToUse_0_indexed === undefined || isNaN(monthToUse_0_indexed)) monthToUse_0_indexed = AppState.currentMonth;
+
+
+            lines.forEach(line => {
+                if (line.trim() === "") return;
+
+                // Matches "MM/DD content" or "DD content"
+                const dateMatch = line.match(/^(\d{1,2}(?:\/\d{1,2})?)\s+(.+)/);
+                if (dateMatch) {
+                    const datePart = dateMatch[1];
+                    const description = dateMatch[2].trim();
+                    let day, month;
+
+                    if (datePart.includes('/')) {
+                        [month, day] = datePart.split('/').map(Number);
+                        month -= 1; // Convert to 0-indexed for consistency
+                    } else {
+                        day = parseInt(datePart);
+                        month = monthToUse_0_indexed; // Use the determined month
+                    }
+
+                    if (!isNaN(day) && day >= 1 && day <= 31 && !isNaN(month) && month >=0 && month <=11) {
+                        const dateStr = `${yearToUse}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        if (!tempShifts[dateStr]) tempShifts[dateStr] = [];
+                        tempShifts[dateStr].push({ id: Utils.generateUUID(), description: description, startTime: "", endTime: "", tags: [], location: "" });
+                    } else { 
+                        // If date parsing fails, treat as a note
+                        if (!tempNotesFromParser) tempNotesFromParser = line; else tempNotesFromParser += "\n" + line;
+                    }
+                } else { 
+                    // Line doesn't start with a date, treat as a note
+                    if (!tempNotesFromParser) tempNotesFromParser = line; else tempNotesFromParser += "\n" + line;
+                }
+            });
+            const success = Object.keys(tempShifts).length > 0 || tempNotesFromParser.length > 0;
+            return { success, parsedYear: yearToUse, parsedMonth: monthToUse_0_indexed, parsedShifts: tempShifts, parsedNotes: tempNotesFromParser };
+        },
+        applyParsedDataToAppState: (year, month_0_indexed, shiftsToApply, notesToApply) => {
+            // Switch AppState to the parsed month/year if different
+            AppState.currentYear = year;
+            AppState.currentMonth = month_0_indexed;
+            
+            // Clear existing shifts for the target month before applying new ones
+            const targetMonthPrefix = `${year}-${String(month_0_indexed + 1).padStart(2, '0')}`;
+            for (const dateKey in AppState.shifts) {
+                if (dateKey.startsWith(targetMonthPrefix)) {
+                    delete AppState.shifts[dateKey];
+                }
+            }
+            // Apply new shifts
+            for(const dateKey in shiftsToApply) {
+                if (dateKey.startsWith(targetMonthPrefix)) { // Ensure applying to correct month
+                    if (!AppState.shifts[dateKey]) AppState.shifts[dateKey] = [];
+                    AppState.shifts[dateKey].push(...shiftsToApply[dateKey]);
+                }
+            }
+
+            // Append notes if any
+            if (notesToApply && notesToApply.trim() !== "") {
+                if (AppState.notes) AppState.notes += "\n" + notesToApply;
+                else AppState.notes = notesToApply;
+            }
+            
+            if (UIElements.scheduleNotesTextarea) UIElements.scheduleNotesTextarea.value = AppState.notes;
+            DataStorage.saveDataForCurrentMonth(); // Save all data for the (potentially new) current month
+            Calendar.render(); // Re-render calendar for the new month/year
+            Utils.showCustomAlert(`行程表已成功匯入/更新 ${year}年${month_0_indexed + 1}月 的資料！`, "success");
+        },
+        triggerImportScheduleFromPastedText: () => {
+            if (!UIElements.fullSchedulePasteArea) return;
+            const text = UIElements.fullSchedulePasteArea.value;
+            if (!text.trim()) {
+                Utils.showCustomAlert("請先在文字區域貼上行程表的內容。", "info");
+                return;
+            }
+            // Pass current AppState month/year as default if not found in text
+            const intermediateData = ScheduleParser.parseTextToIntermediateData(text, AppState.currentYear, AppState.currentMonth + 1);
+
+            if (intermediateData.success) {
+                ScheduleParser.applyParsedDataToAppState(
+                    intermediateData.parsedYear, intermediateData.parsedMonth,
+                    intermediateData.parsedShifts, intermediateData.parsedNotes
+                );
+                 UIElements.fullSchedulePasteArea.value = ""; // Clear textarea after import
+            } else {
+                 Utils.showCustomAlert("未能在貼上的文字中找到任何有效的行程表資料。", "error");
+            }
+        }
+    };
+
+    // UI
+    const UI = {
+        cacheDOMElements: () => {
+            UIElements.mainTitle = document.getElementById('mainTitle');
+            UIElements.monthYearDisplay = document.getElementById('monthYearDisplay');
+            UIElements.calendarGrid = document.getElementById('calendarGrid');
+            UIElements.fullSchedulePasteArea = document.getElementById('fullSchedulePasteArea');
+            
+            UIElements.itineraryItemModal = document.getElementById('itineraryItemModal');
+            UIElements.itineraryItemsList = document.getElementById('itineraryItemsList');
+            UIElements.newItineraryItemText = document.getElementById('newItineraryItemText');
+            UIElements.itineraryStartTime = document.getElementById('itineraryStartTime');
+            UIElements.itineraryEndTime = document.getElementById('itineraryEndTime');
+            UIElements.itineraryItemTags = document.getElementById('itineraryItemTags');
+            UIElements.itineraryItemLocation = document.getElementById('itineraryItemLocation');
+            UIElements.addOrUpdateItineraryItemButton = document.getElementById('addOrUpdateItineraryItemButton');
+            
+            UIElements.scheduleNotesTextarea = document.getElementById('scheduleNotes');
+            UIElements.customAlertBox = document.getElementById('customAlert');
+            UIElements.customAlertMessageBox = document.getElementById('customAlertMessage');
+            UIElements.saveNotesButton = document.getElementById('saveNotesButton');
+            
+            UIElements.itineraryControls = document.getElementById('itineraryControls');
+            UIElements.exportItineraryButton = document.getElementById('exportItineraryButton');
+            
+            UIElements.saveItineraryButton = document.getElementById('saveItineraryButton');
+            UIElements.clearItineraryButton = document.getElementById('clearItineraryButton');
+            
+            UIElements.managementModal = document.getElementById('managementModal');
+            UIElements.openManagementModalButton = document.getElementById('openManagementModalButton');
+            UIElements.closeManagementModalButton = document.getElementById('closeManagementModalButton');
+            UIElements.itineraryManagementContent = document.getElementById('itineraryManagementContent');
+            
+            UIElements.dayTooltip = document.getElementById('dayTooltip');
+            UIElements.dayTooltipContent = document.getElementById('dayTooltipContent');
+
+            UIElements.searchInput = document.getElementById('searchInput'); 
+            UIElements.searchButton = document.getElementById('searchButton'); 
+            UIElements.searchBarContainer = document.getElementById('searchBarContainer');
+            UIElements.monthControls = document.getElementById('monthControls');
+
+
+            UIElements.searchResultsModal = document.getElementById('searchResultsModal');
+            UIElements.searchResultsList = document.getElementById('searchResultsList');
+            UIElements.closeSearchResultsModalButton = document.getElementById('closeSearchResultsModalButton');
+
+            // Day View Elements
+            UIElements.calendarViewSection = document.getElementById('calendarViewSection');
+            UIElements.dayViewContainer = document.getElementById('dayViewContainer');
+            UIElements.dayViewDateTitle = document.getElementById('dayViewDateTitle');
+            UIElements.dayViewEventsList = document.getElementById('dayViewEventsList');
+            UIElements.addNewItemInDayViewButton = document.getElementById('addNewItemInDayViewButton');
+            UIElements.backToCalendarViewButton = document.getElementById('backToCalendarViewButton');
+        },
+        setActiveView: (view) => { 
+            AppState.currentView = view;
+            if (view === 'calendar') {
+                if (UIElements.calendarViewSection) UIElements.calendarViewSection.classList.remove('hidden');
+                if (UIElements.dayViewContainer) UIElements.dayViewContainer.classList.add('hidden');
+                if (UIElements.mainTitle) UIElements.mainTitle.textContent = "個人行程表"; 
+                Calendar.render(); // Ensure calendar is rendered
+            } else if (view === 'day') {
+                if (UIElements.calendarViewSection) UIElements.calendarViewSection.classList.add('hidden');
+                if (UIElements.dayViewContainer) UIElements.dayViewContainer.classList.remove('hidden');
+                 if (UIElements.mainTitle) UIElements.mainTitle.textContent = "本日行程"; 
+                // DayView.renderDayViewItems will be called by DayView.openDayView
+            }
+        },
+        openItineraryItemModal: (dateStr, itemIdToEdit = null) => { 
+            if (!UIElements.itineraryItemModal || !UIElements.itineraryItemsList || !UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
+            
+            AppState.selectedDateForAssignment = dateStr; // Date for which item is being added/edited
+            UIElements.itineraryItemsList.dataset.date = dateStr; // Store date on the list for context
+            
+            const modalTitle = UIElements.itineraryItemModal.querySelector('#itineraryItemModalTitle');
+            if (modalTitle) modalTitle.textContent = `編輯 ${dateStr} 的行程項目`;
+
+            // Clear form fields
+            UIElements.newItineraryItemText.value = '';
+            UIElements.itineraryStartTime.value = '';
+            UIElements.itineraryEndTime.value = '';
+            UIElements.itineraryItemTags.value = ''; 
+            UIElements.itineraryItemLocation.value = '';
+            UIElements.addOrUpdateItineraryItemButton.textContent = '新增項目';
+            AppState.editingItemId = null; // Reset editing ID
+
+            if (itemIdToEdit) {
+                const itemsOnDate = AppState.shifts[dateStr] || [];
+                const item = itemsOnDate.find(i => i.id === itemIdToEdit);
+                if (item) {
+                    UI.prepareEditItineraryItem(dateStr, item); // This will set AppState.editingItemId
+                }
+            }
+            // Render all items for the date in the modal's list (useful if managing multiple items for a day)
+            UI.renderItineraryItemsInModal(dateStr); 
+            
+            UIElements.itineraryItemModal.style.display = 'flex';
+            UIElements.newItineraryItemText.focus();
+        },
+        closeItineraryItemModal: () => { 
+            if (UIElements.itineraryItemModal) UIElements.itineraryItemModal.style.display = 'none';
+            // AppState.selectedDateForAssignment = null; // Keep this, might be needed if modal was opened from Day View
+            // AppState.editingItemId = null; // Keep this, might be needed
+            
+            // Don't clear form fields here, they are cleared on open
+            // If Day View is active and a date is selected for it, refresh Day View
+            if (AppState.currentView === 'day' && AppState.selectedDayForDayView) {
+                DayView.renderDayViewItems(AppState.selectedDayForDayView);
+            }
+            // Calendar is usually re-rendered by the action that led to modal closing (add/update/delete)
+        },
+        renderItineraryItemsInModal: (dateStr) => { 
+            if (!UIElements.itineraryItemsList) return;
+            UIElements.itineraryItemsList.innerHTML = ''; // Clear previous items
+            const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59"));
+
+
+            if (items.length === 0) {
+                UIElements.itineraryItemsList.innerHTML = '<p class="text-sm text-slate-500">此日期尚無行程項目可供編輯。請使用下方表單新增。</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'itinerary-modal-item'; // Existing style for modal items
+                itemDiv.setAttribute('draggable', true); 
+                itemDiv.dataset.itemId = item.id; 
+                
+                const itemDetailsDiv = document.createElement('div');
+                itemDetailsDiv.className = 'item-details';
+
+                const itemDescriptionP = document.createElement('p');
+                itemDescriptionP.className = 'item-description';
+                try { 
+                    itemDescriptionP.innerHTML = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(item.description || "") : (item.description || ""); 
+                } catch(e) { itemDescriptionP.textContent = item.description || ""; }
+                itemDetailsDiv.appendChild(itemDescriptionP);
+
+                if (item.startTime || item.endTime) {
+                    const itemTimeP = document.createElement('p');
+                    itemTimeP.className = 'item-time';
+                    let timeText = "";
+                    if (item.startTime) timeText += item.startTime;
+                    if (item.startTime && item.endTime) timeText += " - ";
+                    else if (!item.startTime && item.endTime) timeText += "結束於 ";
+                    if (item.endTime) timeText += item.endTime;
+                    itemTimeP.textContent = timeText;
+                    itemDetailsDiv.appendChild(itemTimeP);
+                }
+                if (item.location) {
+                    const itemLocationP = document.createElement('p');
+                    itemLocationP.className = 'item-location';
+                    itemLocationP.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i>${item.location}`;
+                    itemDetailsDiv.appendChild(itemLocationP);
+                }
+                if (item.tags && item.tags.length > 0) {
+                    const itemTagsDiv = document.createElement('div');
+                    itemTagsDiv.className = 'item-tags';
+                    item.tags.forEach(tag => {
+                        const tagSpan = document.createElement('span');
+                        tagSpan.className = 'tag';
+                        tagSpan.textContent = tag;
+                        itemTagsDiv.appendChild(tagSpan);
+                    });
+                    itemDetailsDiv.appendChild(itemTagsDiv);
+                }
+                itemDiv.appendChild(itemDetailsDiv);
+
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'item-actions';
+
+                const editBtn = document.createElement('button');
+                editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+                editBtn.className = 'edit-btn rounded';
+                editBtn.title = '編輯此項目';
+                editBtn.onclick = (e) => { e.stopPropagation(); UI.prepareEditItineraryItem(dateStr, item); };
+                buttonGroup.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;'; // Using &times; for delete icon
+                deleteBtn.className = 'delete-btn rounded';
+                deleteBtn.title = '刪除此項目';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); UI.removeItineraryItem(dateStr, item.id); };
+                buttonGroup.appendChild(deleteBtn);
+
+                itemDiv.appendChild(buttonGroup);
+                UIElements.itineraryItemsList.appendChild(itemDiv);
+            });
+        },
+        prepareEditItineraryItem: (dateStr, itemToEdit) => { 
+            if (!UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
+            
+            AppState.editingItemId = itemToEdit.id; 
+            AppState.selectedDateForAssignment = dateStr; // Ensure this is set for context
+            
+            UIElements.newItineraryItemText.value = itemToEdit.description;
+            UIElements.itineraryStartTime.value = itemToEdit.startTime || "";
+            UIElements.itineraryEndTime.value = itemToEdit.endTime || "";
+            UIElements.itineraryItemTags.value = itemToEdit.tags ? itemToEdit.tags.join(', ') : "";
+            UIElements.itineraryItemLocation.value = itemToEdit.location || "";
+            
+            UIElements.addOrUpdateItineraryItemButton.textContent = '更新項目'; 
+            UIElements.newItineraryItemText.focus(); 
+            // The list of items in the modal (UIElements.itineraryItemsList) is already rendered by openItineraryItemModal.
+            // No need to re-render it here, just fill the form.
+        },
+        addOrUpdateItineraryItem: () => { 
+            if (!AppState.selectedDateForAssignment || !UIElements.newItineraryItemText || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
+            
+            const description = UIElements.newItineraryItemText.value.trim();
+            const startTime = UIElements.itineraryStartTime.value;
+            const endTime = UIElements.itineraryEndTime.value;
+            const tagsString = UIElements.itineraryItemTags.value.trim();
+            const tags = tagsString ? tagsString.split(/[,，\s]+/).map(tag => tag.trim()).filter(tag => tag) : [];
+            const location = UIElements.itineraryItemLocation.value.trim();
+
+            if (!description) { Utils.showCustomAlert("行程描述不可為空。", "info"); return; }
+            if (endTime && !startTime) { Utils.showCustomAlert("若設定結束時間，請同時設定開始時間。", "info"); return; }
+            if (startTime && endTime && endTime < startTime) { Utils.showCustomAlert("結束時間不可早於開始時間。", "info"); return; }
+
+            const dateStr = AppState.selectedDateForAssignment;
+            if (!AppState.shifts[dateStr]) AppState.shifts[dateStr] = [];
+
+            if (AppState.editingItemId) { // Update existing item
+                const itemIndex = AppState.shifts[dateStr].findIndex(item => item.id === AppState.editingItemId);
+                if (itemIndex > -1) {
+                    AppState.shifts[dateStr][itemIndex].description = description;
+                    AppState.shifts[dateStr][itemIndex].startTime = startTime;
+                    AppState.shifts[dateStr][itemIndex].endTime = endTime;
+                    AppState.shifts[dateStr][itemIndex].tags = tags;
+                    AppState.shifts[dateStr][itemIndex].location = location;
+                    Utils.showCustomAlert("行程項目已更新。", "success", 1500);
+                }
+                AppState.editingItemId = null; // Reset editing ID
+                UIElements.addOrUpdateItineraryItemButton.textContent = '新增項目';
+            } else { // Add new item
+                const newItem = { id: Utils.generateUUID(), description: description, startTime: startTime, endTime: endTime, tags: tags, location: location };
+                AppState.shifts[dateStr].push(newItem);
+                Utils.showCustomAlert("行程項目已新增。", "success", 1500);
+            }
+
+            DataStorage.saveDataForCurrentMonth();
+            
+            // Refresh the list in the modal itself
+            UI.renderItineraryItemsInModal(dateStr); 
+            
+            // Refresh Day View if it's active for this date
+            if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
+                DayView.renderDayViewItems(dateStr);
+            }
+            Calendar.render(); // Always refresh calendar for counts/summary
+
+            // Clear form for next new item (if not editing)
+            if (!AppState.editingItemId) { // Only clear if it was an "add" operation
+                UIElements.newItineraryItemText.value = ''; 
+                UIElements.itineraryStartTime.value = '';
+                UIElements.itineraryEndTime.value = '';
+                UIElements.itineraryItemTags.value = '';
+                UIElements.itineraryItemLocation.value = '';
+                UIElements.newItineraryItemText.focus();
+            }
+        },
+        removeItineraryItem: (dateStr, itemId) => { 
+            if (!AppState.shifts[dateStr]) return;
+            AppState.shifts[dateStr] = AppState.shifts[dateStr].filter(item => item.id !== itemId);
+            if (AppState.shifts[dateStr].length === 0) delete AppState.shifts[dateStr]; // Remove date key if no items left
+
+            DataStorage.saveDataForCurrentMonth();
+            
+            // Refresh list in the modal if it's open for this date
+            if (UIElements.itineraryItemModal.style.display === 'flex' && UIElements.itineraryItemsList.dataset.date === dateStr) {
+                UI.renderItineraryItemsInModal(dateStr);
+            }
+            
+            // Refresh Day View if it's active for this date
+            if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
+                DayView.renderDayViewItems(dateStr);
+            }
+            Calendar.render(); // Always refresh calendar
+
+            Utils.showCustomAlert("行程項目已刪除。", "success", 1500);
+
+            // If the deleted item was being edited in the form, clear the form
+            if (AppState.editingItemId === itemId) {
+                AppState.editingItemId = null;
+                UIElements.newItineraryItemText.value = '';
+                UIElements.itineraryStartTime.value = ''; UIElements.itineraryEndTime.value = '';
+                UIElements.itineraryItemTags.value = '';
+                UIElements.itineraryItemLocation.value = '';
+                UIElements.addOrUpdateItineraryItemButton.textContent = '新增項目';
+            }
+        },
+        openManagementModal: () => { if (UIElements.managementModal) UIElements.managementModal.style.display = 'flex'; },
+        closeManagementModal: () => { if (UIElements.managementModal) UIElements.managementModal.style.display = 'none'; },
+        
+        showTooltip: (event, dateStr) => { 
+            if (!UIElements.dayTooltip || !UIElements.dayTooltipContent) return;
+            clearTimeout(AppState.tooltipTimeout); // Clear any existing hide timeout
+
+            const items = AppState.shifts[dateStr] || [];
+            if (items.length === 0 && !AppState.holidays[dateStr]) { // No items and no holiday, hide tooltip
+                UI.hideTooltip(0); // Hide immediately
+                return;
+            }
+
+            UIElements.dayTooltipContent.innerHTML = ''; // Clear previous content
+
+            if (AppState.holidays[dateStr]) {
+                const holidayDiv = document.createElement('div');
+                holidayDiv.className = 'tooltip-item font-semibold text-red-600';
+                holidayDiv.textContent = `假期: ${AppState.holidays[dateStr]}`;
+                UIElements.dayTooltipContent.appendChild(holidayDiv);
+            }
+
+            if (items.length > 0) {
+                items.slice(0, 3).forEach(item => { // Show max 3 items in tooltip for brevity
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'tooltip-item';
+                    let itemHTML = ""; 
+                    if (item.startTime) {
+                        itemHTML += `<span class="item-time">${item.startTime}</span>`;
+                        if (item.endTime) itemHTML += `<span class="item-time"> - ${item.endTime}</span>`;
+                        itemHTML += " ";
+                    }
+                    try { itemHTML += `<span class="item-description">${(typeof marked !== 'undefined' && marked.parse) ? marked.parse(item.description || "").replace(/<p>|<\/p>/g, "") : (item.description || "")}</span>`; } 
+                    catch(e) { itemHTML += `<span class="item-description">${item.description || ""}</span>`;}
+                    
+                    if (item.location) { itemHTML += `<div class="item-location-tooltip"><i class="fas fa-map-marker-alt mr-1"></i>${item.location}</div>`; }
+                    if (item.tags && item.tags.length > 0) {
+                        itemHTML += `<div class="item-tags-tooltip">`;
+                        item.tags.forEach(tag => { itemHTML += `<span class="tag">${tag}</span>`; });
+                        itemHTML += `</div>`;
+                    }
+                    itemDiv.innerHTML = itemHTML;
+                    UIElements.dayTooltipContent.appendChild(itemDiv);
+                });
+                if (items.length > 3) {
+                    const moreItemsDiv = document.createElement('div');
+                    moreItemsDiv.className = 'tooltip-item text-xs text-slate-500';
+                    moreItemsDiv.textContent = `還有 ${items.length - 3} 個項目...`;
+                    UIElements.dayTooltipContent.appendChild(moreItemsDiv);
+                }
+            } else if (!AppState.holidays[dateStr]) { // Only show "no items" if also no holiday
+                 const noItemsDiv = document.createElement('div');
+                 noItemsDiv.className = 'tooltip-no-items';
+                 noItemsDiv.textContent = '本日無行程項目';
+                 UIElements.dayTooltipContent.appendChild(noItemsDiv);
+            }
+            
+            // Position and show tooltip
+            const targetCell = event.currentTarget;
+            const cellRect = targetCell.getBoundingClientRect();
+            const tooltip = UIElements.dayTooltip;
+            tooltip.style.display = 'block'; // Show it first to get its dimensions
+
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let top = cellRect.bottom + window.scrollY + 5; // Below the cell
+            let left = cellRect.left + window.scrollX;       // Align with left of cell
+
+            // Adjust if tooltip goes off-screen
+            if (left + tooltipRect.width > window.innerWidth) {
+                left = window.innerWidth - tooltipRect.width - 10; // Move left
+            }
+            if (top + tooltipRect.height > window.innerHeight && cellRect.top > tooltipRect.height + 5) {
+                // If not enough space below and enough space above, show above
+                top = cellRect.top + window.scrollY - tooltipRect.height - 5;
+            } else if (top + tooltipRect.height > window.innerHeight) {
+                 // Not enough space below and not enough above, stick to bottom of viewport
+                 top = window.innerHeight - tooltipRect.height - 10;
+            }
+            if (left < 0) left = 5; // Ensure not off-left
+            if (top < 0) top = 5;   // Ensure not off-top
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+        },
+        hideTooltip: (delay = 100) => { // Added delay parameter
+            if (AppState.tooltipTimeout) clearTimeout(AppState.tooltipTimeout);
+            AppState.tooltipTimeout = setTimeout(() => {
+                if (UIElements.dayTooltip) UIElements.dayTooltip.style.display = 'none';
+            }, delay); 
+        },
+        openSearchResultsModal: (results) => { 
+            if (!UIElements.searchResultsModal || !UIElements.searchResultsList) return;
+            UIElements.searchResultsList.innerHTML = ''; 
+            if (results.length === 0) {
+                UIElements.searchResultsList.innerHTML = '<p class="text-slate-500 p-4 text-center">找不到符合條件的行程項目。</p>';
+            } else {
+                results.forEach(result => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'search-result-item';
+                    let content = `<div class="search-result-date">${result.date}</div>`;
+                    if (result.item.startTime) {
+                        content += `<span class="item-time">${result.item.startTime}</span>`;
+                        if (result.item.endTime) content += `<span class="item-time"> - ${result.item.endTime}</span>`;
+                        content += " ";
+                    }
+                    try {
+                        content += `<div class="search-result-description">${(typeof marked !== 'undefined' && marked.parse) ? marked.parse(result.item.description || "") : (result.item.description || "")}</div>`;
+                    } catch (e) {
+                        content += `<div class="search-result-description">${result.item.description || ""}</div>`;
+                    }
+                    if (result.item.location) {
+                        content += `<div class="item-location-tooltip text-sm"><i class="fas fa-map-marker-alt mr-1"></i>${result.item.location}</div>`;
+                    }
+                    if (result.item.tags && result.item.tags.length > 0) {
+                        content += `<div class="item-tags-tooltip text-sm">`;
+                        result.item.tags.forEach(tag => { content += `<span class="tag">${tag}</span>`; });
+                        content += `</div>`;
+                    }
+                    itemEl.innerHTML = content;
+                    itemEl.onclick = () => {
+                        UI.closeSearchResultsModal();
+                        const [year, month, day] = result.date.split('-').map(Number);
+                        
+                        // Navigate to the month of the search result
+                        if (AppState.currentYear !== year || AppState.currentMonth !== month -1) {
+                            AppState.currentYear = year;
+                            AppState.currentMonth = month - 1;
+                            DataStorage.loadDataForCurrentMonth(); // Load data for the new month
+                        }
+                        // Open Day View for the search result date
+                        DayView.openDayView(result.date);
+                        // Optionally, scroll to and highlight the item in Day View (more complex)
+                        // For now, just opening Day View is a good step.
+                        // Or, if preferred, open the item edit modal directly:
+                        // Calendar.render(); // Render the correct month
+                        // UI.openItineraryItemModal(result.date, result.item.id); 
+                    };
+                    UIElements.searchResultsList.appendChild(itemEl);
+                });
+            }
+            UIElements.searchResultsModal.style.display = 'flex';
+        },
+        closeSearchResultsModal: () => {
+            if (UIElements.searchResultsModal) UIElements.searchResultsModal.style.display = 'none';
+        }
+    };
+
+    // DayView Module
+    const DayView = {
+        openDayView: (dateStr) => {
+            AppState.selectedDayForDayView = dateStr;
+            UI.setActiveView('day'); // This will hide calendar and show day view container
+            if (UIElements.dayViewDateTitle) {
+                const [year, month, day] = dateStr.split('-');
+                UIElements.dayViewDateTitle.textContent = `${year}年${parseInt(month)}月${parseInt(day)}日 行程詳情`;
+            }
+            DayView.renderDayViewItems(dateStr);
+            if (UIElements.addNewItemInDayViewButton) {
+                UIElements.addNewItemInDayViewButton.onclick = () => UI.openItineraryItemModal(dateStr);
+            }
+        },
+        closeDayView: () => {
+            UI.setActiveView('calendar');
+            AppState.selectedDayForDayView = null;
+            // Calendar.render() is called by setActiveView('calendar')
+        },
+        renderDayViewItems: (dateStr) => {
+            if (!UIElements.dayViewEventsList) return;
+            UIElements.dayViewEventsList.innerHTML = '';
+            const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59")); // Sort by time
+
+            if (AppState.holidays[dateStr]) {
+                 const holidayDiv = document.createElement('div');
+                 holidayDiv.className = 'day-view-item bg-red-50 border-red-200'; // Special styling for holiday
+                 holidayDiv.innerHTML = `<div class="item-details"><p class="item-description font-semibold text-red-700"><i class="fas fa-star mr-2"></i>假期: ${AppState.holidays[dateStr]}</p></div>`;
+                 UIElements.dayViewEventsList.appendChild(holidayDiv);
+            }
+
+            if (items.length === 0) {
+                if (!AppState.holidays[dateStr]) { // Only show "no items" if no holiday either
+                    UIElements.dayViewEventsList.innerHTML = '<p class="day-view-no-items">本日無行程項目。</p>';
+                }
+                return;
+            }
+
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'day-view-item';
+                itemDiv.dataset.itemId = item.id;
+
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'item-details';
+
+                if (item.startTime) {
+                    const timeP = document.createElement('p');
+                    timeP.className = 'item-time';
+                    timeP.textContent = item.startTime + (item.endTime ? ` - ${item.endTime}` : '');
+                    detailsDiv.appendChild(timeP);
+                }
+
+                const descriptionP = document.createElement('div'); // Use div for innerHTML from Markdown
+                descriptionP.className = 'item-description';
+                try {
+                    descriptionP.innerHTML = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(item.description || "") : (item.description || "");
+                } catch(e) { descriptionP.textContent = item.description || ""; }
+                detailsDiv.appendChild(descriptionP);
+
+                if (item.location) {
+                    const locationP = document.createElement('p');
+                    locationP.className = 'item-location';
+                    locationP.innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i>${item.location}`;
+                    detailsDiv.appendChild(locationP);
+                }
+
+                if (item.tags && item.tags.length > 0) {
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'item-tags';
+                    item.tags.forEach(tag => {
+                        const tagSpan = document.createElement('span');
+                        tagSpan.className = 'tag';
+                        tagSpan.textContent = tag;
+                        tagsDiv.appendChild(tagSpan);
+                    });
+                    detailsDiv.appendChild(tagsDiv);
+                }
+                itemDiv.appendChild(detailsDiv);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'item-actions';
+                const editBtn = document.createElement('button');
+                editBtn.innerHTML = '<i class="fas fa-edit mr-1"></i>編輯';
+                editBtn.className = 'edit-btn';
+                editBtn.onclick = () => UI.openItineraryItemModal(dateStr, item.id);
+                actionsDiv.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i>刪除';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.onclick = () => {
+                    // Ideally, replace with a custom confirmation modal
+                    if (confirm(`確定要刪除此行程項目嗎？\n"${item.description.substring(0,50)}..."`)) {
+                        UI.removeItineraryItem(dateStr, item.id);
+                        // DayView.renderDayViewItems(dateStr); // removeItineraryItem already calls this if in day view
+                    }
+                };
+                actionsDiv.appendChild(deleteBtn);
+                itemDiv.appendChild(actionsDiv);
+                UIElements.dayViewEventsList.appendChild(itemDiv);
+            });
+        }
+    };
+
+
+    // DragDrop
+    const DragDrop = { 
+        init: () => {
+            const list = UIElements.itineraryItemsList; // Drag drop is for the modal list
+            if (list) { 
+                list.addEventListener('dragstart', DragDrop.handleDragStart);
+                list.addEventListener('dragover', DragDrop.handleDragOver);
+                list.addEventListener('drop', DragDrop.handleDrop);
+                list.addEventListener('dragend', DragDrop.handleDragEnd);
+            }
+        },
+        handleDragStart: (e) => {
+            const targetItem = e.target.closest('.itinerary-modal-item');
+            if (targetItem && targetItem.dataset.itemId) {
+                AppState.draggedItemId = targetItem.dataset.itemId;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', AppState.draggedItemId); // Required for Firefox
+                setTimeout(() => targetItem.classList.add('dragging'), 0); // Style dragging item
+            } else {
+                e.preventDefault(); // Not a draggable item
+            }
+        },
+        handleDragOver: (e) => {
+            e.preventDefault(); // Allow drop
+            e.dataTransfer.dropEffect = 'move';
+            const list = UIElements.itineraryItemsList;
+            if(!list) return;
+
+            const draggingItem = list.querySelector('.dragging');
+            if (!draggingItem) return;
+
+            // Get all other items (siblings)
+            const siblings = [...list.querySelectorAll('.itinerary-modal-item:not(.dragging)')];
+            
+            // Find the sibling to insert before
+            let nextSibling = siblings.find(sibling => {
+                const rect = sibling.getBoundingClientRect();
+                return e.clientY < rect.top + rect.height / 2;
+            });
+            
+            // Remove previous drag-over class
+            siblings.forEach(s => s.classList.remove('drag-over'));
+            
+            // Add drag-over class to the appropriate sibling or to the list for appending
+            if (nextSibling) {
+                nextSibling.classList.add('drag-over');
+            } else if (siblings.length > 0) {
+                // If no nextSibling and there are siblings, means it's after the last one
+                // No visual cue for "after last" needed if appending is default
+            }
+        },
+        handleDrop: (e) => {
+            e.preventDefault();
+            const dateStr = UIElements.itineraryItemsList ? UIElements.itineraryItemsList.dataset.date : null;
+            if (!dateStr || !AppState.draggedItemId) return;
+
+            const items = AppState.shifts[dateStr] || [];
+            if (items.length === 0) return;
+
+            const draggedItemIndex = items.findIndex(item => item.id === AppState.draggedItemId);
+            if (draggedItemIndex === -1) return;
+
+            const draggedItem = items.splice(draggedItemIndex, 1)[0]; // Remove item
+
+            // Determine target index
+            let targetIndex;
+            const targetItemElement = e.target.closest('.itinerary-modal-item:not(.dragging)');
+
+            if (targetItemElement && targetItemElement.dataset.itemId) {
+                const targetItemId = targetItemElement.dataset.itemId;
+                targetIndex = items.findIndex(item => item.id === targetItemId);
+                const rect = targetItemElement.getBoundingClientRect();
+                // If dropping on the lower half of the target, insert after it
+                if (e.clientY >= rect.top + rect.height / 2) {
+                    targetIndex++;
+                }
+            } else {
+                // If not dropped on a specific item, or dropped on empty space, append to end
+                // Or, more precisely, find where it should go based on Y position relative to all items
+                const list = UIElements.itineraryItemsList;
+                const siblings = list ? [...list.querySelectorAll('.itinerary-modal-item:not(.dragging)')] : [];
+                const nextSiblingElement = siblings.find(sibling => e.clientY < sibling.getBoundingClientRect().top + sibling.getBoundingClientRect().height / 2);
+                if (nextSiblingElement && nextSiblingElement.dataset.itemId) {
+                    targetIndex = items.findIndex(item => item.id === nextSiblingElement.dataset.itemId);
+                } else {
+                    targetIndex = items.length; // Append to end
+                }
+            }
+            
+            items.splice(targetIndex, 0, draggedItem); // Insert item at new position
+
+            AppState.shifts[dateStr] = items;
+            DataStorage.saveDataForCurrentMonth();
+            UI.renderItineraryItemsInModal(dateStr); // Re-render modal list
+            Calendar.render(); // Re-render calendar for summary
+            if (AppState.currentView === 'day' && AppState.selectedDayForDayView === dateStr) {
+                DayView.renderDayViewItems(dateStr); // Re-render day view if active
+            }
+        },
+        handleDragEnd: (e) => {
+            const targetItem = e.target.closest('.itinerary-modal-item');
+            if (targetItem) targetItem.classList.remove('dragging');
+            
+            const list = UIElements.itineraryItemsList;
+            if(list) {
+                [...list.querySelectorAll('.itinerary-modal-item')].forEach(s => s.classList.remove('drag-over'));
+            }
+            AppState.draggedItemId = null;
+        }
+    };
+
+    // Exporter
+    const Exporter = { 
+        exportItineraryToICS: () => {
+            let eventsToExport = [];
+            // Export all events from AppState.shifts, not just current month
+            // Or, provide an option to export current month vs all data
+            // For now, let's stick to current month as per original logic for simplicity
+            const currentMonthPrefix = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}`;
+
+            for (const dateStr in AppState.shifts) {
+                if (dateStr.startsWith(currentMonthPrefix) && AppState.shifts[dateStr]) {
+                    const itemsOnDate = AppState.shifts[dateStr];
+                    itemsOnDate.forEach(item => {
+                        eventsToExport.push({ 
+                            date: dateStr, 
+                            description: item.description,
+                            id: item.id, // Use item's own ID for UID
+                            startTime: item.startTime,
+                            endTime: item.endTime,
+                            tags: item.tags,
+                            location: item.location
+                        });
+                    });
+                }
+            }
+
+            if (eventsToExport.length === 0) { 
+                Utils.showCustomAlert("本月沒有行程表項目可供匯出。", "info");
+                return; 
+            }
+
+            let icsEvents = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                `PRODID:-//PersonalItineraryTool//${Utils.getLocalStorageKey('').split('_')[1]}//ZH` // Use app version in PRODID
+            ];
+
+            eventsToExport.forEach(eventData => {
+                const dateParts = eventData.date.split('-'); // YYYY-MM-DD
+                if (dateParts.length !== 3) return; // Skip if date format is wrong
+                
+                const year = parseInt(dateParts[0]), month = parseInt(dateParts[1]) - 1, day = parseInt(dateParts[2]); // JS month is 0-indexed
+                
+                let dtStartStr, dtEndStr;
+                const baseDate = `${year}${String(month + 1).padStart(2, '0')}${String(day).padStart(2, '0')}`; // YYYYMMDD format
+
+                if (eventData.startTime) {
+                    const startTimeStr = eventData.startTime.replace(':', '') + '00'; // HHMMSS
+                    dtStartStr = `DTSTART;TZID=Asia/Taipei:${baseDate}T${startTimeStr}`; // Assuming Taipei timezone, adjust if needed or make configurable
+                    
+                    if (eventData.endTime) {
+                        const endTimeStr = eventData.endTime.replace(':', '') + '00';
+                        dtEndStr = `DTEND;TZID=Asia/Taipei:${baseDate}T${endTimeStr}`;
+                    } else { 
+                        // If no end time, make it a 1-hour event by default for timed events
+                        const startHour = parseInt(eventData.startTime.split(':')[0]);
+                        const startMinute = parseInt(eventData.startTime.split(':')[1]);
+                        let endHour = startHour + 1;
+                        let endMinute = startMinute;
+                        if (endHour >= 24) { endHour = 23; endMinute = 59; } // Cap at end of day
+                        dtEndStr = `DTEND;TZID=Asia/Taipei:${baseDate}T${String(endHour).padStart(2, '0')}${String(endMinute).padStart(2, '0')}00`;
+                    }
+                } else { 
+                    // All-day event
+                    dtStartStr = `DTSTART;VALUE=DATE:${baseDate}`;
+                    // For all-day events, DTEND is typically the start of the next day
+                    const nextDayDate = new Date(Date.UTC(year, month, day + 1));
+                    dtEndStr = `DTEND;VALUE=DATE:${nextDayDate.getUTCFullYear()}${String(nextDayDate.getUTCMonth() + 1).padStart(2, '0')}${String(nextDayDate.getUTCDate()).padStart(2, '0')}`;
+                }
+
+                let eventSummary = eventData.description.split('\n')[0]; // First line as summary
+                let eventDescription = eventData.description; // Full description
+                if (eventData.location) {
+                    eventDescription += `\n地點: ${eventData.location}`;
+                }
+                if (eventData.tags && eventData.tags.length > 0) {
+                    eventDescription += `\n標籤: ${eventData.tags.join(', ')}`;
+                }
+
+                icsEvents.push('BEGIN:VEVENT');
+                icsEvents.push(`UID:itinerary-${eventData.date}-${eventData.id}@personaltool.local`); // Unique ID for the event
+                icsEvents.push(`DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15)}Z`); // Creation timestamp
+                icsEvents.push(dtStartStr);
+                icsEvents.push(dtEndStr);
+                icsEvents.push(`SUMMARY:${eventSummary.replace(/\n/g, "\\n")}`); // Escape newlines in summary
+                icsEvents.push(`DESCRIPTION:${eventDescription.replace(/\n/g, "\\n")}`); // Escape newlines in description
+                if (eventData.location) {
+                    icsEvents.push(`LOCATION:${eventData.location.replace(/\n/g, "\\n")}`);
+                }
+                icsEvents.push('END:VEVENT');
+            });
+
+            icsEvents.push('END:VCALENDAR');
+            const icsContent = icsEvents.join('\r\n');
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            let filenamePart = `個人行程表_${AppState.currentYear}${String(AppState.currentMonth + 1).padStart(2, '0')}`;
+            link.download = `${filenamePart}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href); // Clean up
+            Utils.showCustomAlert("行程表已匯出為 .ics 檔案。", "success");
+        }
+    };
+    
+    // Search Functionality
+    const Search = {
+        performSearch: () => {
+            if (!UIElements.searchInput) return;
+            const query = UIElements.searchInput.value.trim().toLowerCase();
+            if (!query) {
+                Utils.showCustomAlert("請輸入搜尋關鍵字。", "info");
+                return;
+            }
+
+            const results = [];
+            // Search across all years and months stored in AppState.shifts
+            for (const dateStr in AppState.shifts) {
+                if (AppState.shifts.hasOwnProperty(dateStr)) {
+                    const itemsOnDate = AppState.shifts[dateStr];
+                    itemsOnDate.forEach(item => {
+                        let match = false;
+                        if (item.description && item.description.toLowerCase().includes(query)) {
+                            match = true;
+                        }
+                        if (!match && item.location && item.location.toLowerCase().includes(query)) {
+                            match = true;
+                        }
+                        if (!match && item.tags && item.tags.some(tag => tag.toLowerCase().includes(query))) {
+                            match = true;
+                        }
+                        // Could also add date matching if query looks like a date
+
+                        if (match) {
+                            results.push({ date: dateStr, item: { ...item } }); // Store a copy
+                        }
+                    });
+                }
+            }
+            // Sort results by date (chronological)
+            results.sort((a,b) => a.date.localeCompare(b.date));
+            UI.openSearchResultsModal(results);
+        }
+    };
+
+
+    // Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        UI.cacheDOMElements();
+        if (UIElements.itineraryItemsList) { DragDrop.init(); } // Init drag-drop for modal item list
+        
+        DataStorage.loadDataForCurrentMonth(); // Load initial data
+        UI.setActiveView('calendar'); // Set initial view to calendar
+
+        // Event Listeners
+        if (UIElements.saveNotesButton) {
+            UIElements.saveNotesButton.addEventListener('click', () => {
+                if (UIElements.scheduleNotesTextarea) AppState.notes = UIElements.scheduleNotesTextarea.value;
+                DataStorage.saveDataForCurrentMonth();
+                Utils.showCustomAlert("備註已儲存。", "success", 2000);
+            });
+        }
+        if (UIElements.openManagementModalButton) UIElements.openManagementModalButton.addEventListener('click', UI.openManagementModal);
+        if (UIElements.closeManagementModalButton) UIElements.closeManagementModalButton.addEventListener('click', UI.closeManagementModal);
+        
+        if (UIElements.saveItineraryButton) { 
+            UIElements.saveItineraryButton.addEventListener('click', () => {
+                if (UIElements.scheduleNotesTextarea) AppState.notes = UIElements.scheduleNotesTextarea.value; // Ensure notes are captured
+                DataStorage.saveDataForCurrentMonth();
+                Utils.showCustomAlert("行程表資料已儲存。", "success");
+                UI.closeManagementModal();
+            });
+        }
+        if (UIElements.clearItineraryButton) { 
+            UIElements.clearItineraryButton.addEventListener('click', () => {
+                // TODO: Replace with a custom modal confirmation for better UX and to avoid `confirm`
+                if (confirm(`您確定要清除 ${AppState.currentYear}年 ${AppState.currentMonth + 1}月 的所有行程表資料和備註嗎？此操作無法復原。`)) {
+                    DataStorage.clearCurrentMonthItinerary();
+                }
+            });
+        }
+        if (UIElements.addOrUpdateItineraryItemButton) UIElements.addOrUpdateItineraryItemButton.addEventListener('click', UI.addOrUpdateItineraryItem);
+        
+        if (UIElements.newItineraryItemText) { // Allow Enter to submit new item, Shift+Enter for newline
+             UIElements.newItineraryItemText.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault(); // Prevent default newline
+                    UI.addOrUpdateItineraryItem();
+                }
+            });
+        }
+
+        // Search listeners
+        if (UIElements.searchButton) UIElements.searchButton.addEventListener('click', Search.performSearch);
+        if (UIElements.searchInput) {
+            UIElements.searchInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    Search.performSearch();
+                }
+            });
+        }
+        if (UIElements.closeSearchResultsModalButton) UIElements.closeSearchResultsModalButton.addEventListener('click', UI.closeSearchResultsModal);
+
+        // Day View listeners
+        if (UIElements.backToCalendarViewButton) UIElements.backToCalendarViewButton.addEventListener('click', DayView.closeDayView);
+        // AddNewItemInDayViewButton listener is set in DayView.openDayView
+
+        // Global listeners
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (UIElements.itineraryItemModal && UIElements.itineraryItemModal.style.display === 'flex') UI.closeItineraryItemModal();
+                if (UIElements.managementModal && UIElements.managementModal.style.display === 'flex') UI.closeManagementModal();
+                if (UIElements.searchResultsModal && UIElements.searchResultsModal.style.display === 'flex') UI.closeSearchResultsModal();
+                // if (AppState.currentView === 'day') DayView.closeDayView(); // Optionally close Day View on Escape
+                UI.hideTooltip(0); // Hide tooltip immediately on escape
+            }
+        });
+        window.onclick = function(event) { // Close modals if clicked outside content
+            if (UIElements.itineraryItemModal && event.target == UIElements.itineraryItemModal) UI.closeItineraryItemModal();
+            if (UIElements.managementModal && event.target == UIElements.managementModal) UI.closeManagementModal();
+            if (UIElements.searchResultsModal && event.target == UIElements.searchResultsModal) UI.closeSearchResultsModal();
+        }
+        
+        // Tooltip hide on calendar grid mouseleave or window blur
+        if(UIElements.calendarGrid) UIElements.calendarGrid.addEventListener('mouseleave', () => UI.hideTooltip());
+        window.addEventListener('blur', () => UI.hideTooltip(0)); // Hide immediately on window blur
+    });
+    </script>
 </body>
 </html>
+<div style="text-align: center;">
+ Copyright © Jean Giono 
+</div>
