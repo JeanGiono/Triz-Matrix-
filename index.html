@@ -13,7 +13,7 @@
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background-color: #f8f9fa; /* Slightly off-white background for the whole page */
+            background-color: #f8f9fa; 
         }
         .calendar-day {
             min-height: 100px;
@@ -21,25 +21,24 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            /* border: 1px solid #e9ecef; Lighter border for day cells - handled by grid gap */
         }
         .calendar-day:hover {
-            background-color: #e9f5ff !important; /* Lighter blue hover, !important to override specific bg */
+            background-color: #e9f5ff !important; 
         }
         .calendar-day.today .day-number-display {
             background-color: #007bff;
-            color: white;
+            color: white !important; /* Ensure white text for today's highlight */
             border-radius: 50%;
-            width: 28px; /* Fixed width for circle */
-            height: 28px; /* Fixed height for circle */
+            width: 28px; 
+            height: 28px; 
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
         }
         .day-number-display {
-            font-size: 0.875rem; /* text-sm */
-            padding: 0.25rem; /* p-1 */
+            font-size: 0.875rem; 
+            padding: 0.25rem; 
             align-self: flex-start;
         }
 
@@ -47,8 +46,8 @@
             font-size: 0.7rem;
             padding: 2px 4px;
             margin-top: 3px;
-            background-color: #e0e7ff; /* Light indigo for items */
-            color: #3730a3; /* Darker indigo text */
+            background-color: #e0e7ff; 
+            color: #3730a3; 
             border-radius: 4px;
             text-align: left;
             overflow: hidden;
@@ -63,24 +62,24 @@
             top: 4px;
             right: 4px;
             font-size: 0.65rem;
-            background-color: #3b82f6; /* Brighter blue for count */
+            background-color: #3b82f6; 
             color: white;
             padding: 2px 5px;
-            border-radius: 0.75rem; /* pill shape */
+            border-radius: 0.75rem; 
             line-height: 1;
         }
         .modal {
             display: none; position: fixed; z-index: 100;
             left: 0; top: 0; width: 100%; height: 100%;
-            overflow: auto; background-color: rgba(0,0,0,0.6); /* Darker overlay */
+            overflow: auto; background-color: rgba(0,0,0,0.6); 
             align-items: center; justify-content: center;
         }
-        .modal-content { /* General modal styling, specific modals can override */
-            background-color: #ffffff; margin: auto; padding: 24px; /* p-6 */
-            border: none; /* Remove border, rely on shadow */
-            width: 90%; max-width: 500px; /* Slightly narrower default */
-            border-radius: 12px; /* Larger radius */
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15), 0 6px 10px rgba(0,0,0,0.1); /* Softer shadow */
+        .modal-content { 
+            background-color: #ffffff; margin: auto; padding: 24px; 
+            border: none; 
+            width: 90%; max-width: 500px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15), 0 6px 10px rgba(0,0,0,0.1); 
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -88,27 +87,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 12px; /* pb-3 */
-            margin-bottom: 16px; /* mb-4 */
-            border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+            padding-bottom: 12px; 
+            margin-bottom: 16px; 
+            border-bottom: 1px solid #e5e7eb; 
         }
         .modal-title {
-            font-size: 1.25rem; /* text-xl */
-            font-weight: 600; /* font-semibold */
-            color: #1f2937; /* Tailwind gray-800 */
+            font-size: 1.25rem; 
+            font-weight: 600; 
+            color: #1f2937; 
         }
-        .close-button { /* X button styling */
-            color: #6b7280; /* Tailwind gray-500 */
+        .close-button { 
+            color: #6b7280; 
             background-color: transparent;
             border: none;
-            font-size: 1.75rem; /* Larger X */
+            font-size: 1.75rem; 
             font-weight: bold;
             line-height: 1;
             padding: 0.25rem 0.5rem;
             cursor: pointer;
             transition: color 0.2s;
         }
-        .close-button:hover { color: #1f2937; /* Tailwind gray-800 */ }
+        .close-button:hover { color: #1f2937; }
 
         .modal-content::-webkit-scrollbar, #itineraryItemsList::-webkit-scrollbar, #dayTooltipContent::-webkit-scrollbar, #searchResultsList::-webkit-scrollbar, #dayViewEventsList::-webkit-scrollbar { width: 6px; }
         .modal-content::-webkit-scrollbar-track, #itineraryItemsList::-webkit-scrollbar-track, #dayTooltipContent::-webkit-scrollbar-track, #searchResultsList::-webkit-scrollbar-track, #dayViewEventsList::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
@@ -117,24 +116,22 @@
         
         .custom-alert {
             display: none; position: fixed; top: 20px; left: 50%;
-            transform: translateX(-50%); padding: 16px; /* p-4 */
-            border-radius: 8px; /* rounded-lg */
+            transform: translateX(-50%); padding: 16px; 
+            border-radius: 8px; 
             z-index: 1050;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 320px; text-align: center;
-            font-size: 0.875rem; /* text-sm */
+            font-size: 0.875rem; 
         }
-        .custom-alert.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca;} /* Red-100, Red-800, Red-300 */
-        .custom-alert.success { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; } /* Green-100, Green-800, Green-300 */
-        .custom-alert.info { background-color: #e0f2fe; color: #075985; border: 1px solid #bae6fd; } /* Sky-100, Sky-800, Sky-300 */
+        .custom-alert.error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca;} 
+        .custom-alert.success { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; } 
+        .custom-alert.info { background-color: #e0f2fe; color: #075985; border: 1px solid #bae6fd; } 
         .hidden { display: none !important; }
-        .holiday-info { font-size: 0.7rem; line-height: 1; word-break: break-all; margin-top: auto; text-align: center; padding-top: 2px; color: #c2410c; /* Orange-700 for holidays */ }
+        .holiday-info { font-size: 0.7rem; line-height: 1; word-break: break-all; margin-top: auto; text-align: center; padding-top: 2px; color: #c2410c; }
         .day-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
         
-        /* Management Modal Specifics */
         #managementModal .modal-content { max-width: 600px; }
-        #managementModal .modal-title { color: #0369a1; /* Sky-700 */ }
+        #managementModal .modal-title { color: #0369a1; }
         
-        /* Itinerary Item Modal Specifics (Add/Edit item) */
         #itineraryItemModal .modal-content { max-width: 480px; }
         .itinerary-modal-item { 
             display: flex; justify-content: space-between; align-items: flex-start; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background-color: #f8fafc; cursor: grab;
@@ -157,15 +154,15 @@
         .itinerary-modal-item .delete-btn:hover { background-color: #dc2626; }
 
         .form-input {
-            width: 100%; padding: 0.625rem 0.75rem; /* py-2.5 px-3 */
-            border: 1px solid #cbd5e1; /* Slate-300 */
-            border-radius: 0.375rem; /* rounded-md */
-            font-size: 0.875rem; /* text-sm */
-            color: #334155; /* Slate-700 */
+            width: 100%; padding: 0.625rem 0.75rem; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 0.375rem; 
+            font-size: 0.875rem; 
+            color: #334155; 
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-input:focus {
-            border-color: #3b82f6; /* Blue-500 */
+            border-color: #3b82f6; 
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
             outline: none;
         }
@@ -177,16 +174,16 @@
             border-radius: 0.375rem; transition: background-color 0.2s;
             color: white;
         }
-        .form-button.primary { background-color: #2563eb; /* Blue-600 */ }
-        .form-button.primary:hover { background-color: #1d4ed8; /* Blue-700 */ }
-        .form-button.secondary { background-color: #64748b; /* Slate-500 */ }
-        .form-button.secondary:hover { background-color: #475569; /* Slate-600 */ }
-        .form-button.danger { background-color: #dc2626; /* Red-600 */ }
-        .form-button.danger:hover { background-color: #b91c1c; /* Red-700 */ }
-        .form-button.success { background-color: #16a34a; /* Green-600 */ }
-        .form-button.success:hover { background-color: #15803d; /* Green-700 */ }
-        .form-button.warning { background-color: #f59e0b; /* Amber-500 */ }
-        .form-button.warning:hover { background-color: #d97706; /* Amber-600 */ }
+        .form-button.primary { background-color: #2563eb; }
+        .form-button.primary:hover { background-color: #1d4ed8; }
+        .form-button.secondary { background-color: #64748b; }
+        .form-button.secondary:hover { background-color: #475569; }
+        .form-button.danger { background-color: #dc2626; }
+        .form-button.danger:hover { background-color: #b91c1c; }
+        .form-button.success { background-color: #16a34a; }
+        .form-button.success:hover { background-color: #15803d; }
+        .form-button.warning { background-color: #f59e0b; }
+        .form-button.warning:hover { background-color: #d97706; }
 
 
         .time-input-group { display: flex; gap: 1rem; margin-top: 0.75rem; margin-bottom: 1rem; }
@@ -212,21 +209,20 @@
         .search-result-date { font-weight: 600; color: #0369a1; margin-bottom: 0.25rem; }
         .search-result-description p { margin: 0.1rem 0;}
 
-        /* Day View Styles */
         #dayViewContainer {
             background-color: #ffffff; 
-            padding: 24px; /* p-6 */
-            border-radius: 12px; /* rounded-xl */
+            padding: 24px; 
+            border-radius: 12px; 
             box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-            margin-top: 1.5rem; /* mt-6 */
+            margin-top: 1.5rem; 
         }
         #dayViewDateTitle {
-            font-size: 1.5rem; /* text-2xl */
-            font-weight: 700; /* font-bold */
-            color: #111827; /* Gray-900 */
-            margin-bottom: 1.5rem; /* mb-6 */
-            padding-bottom: 0.75rem; /* pb-3 */
-            border-bottom: 1px solid #d1d5db; /* Gray-300 */
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            color: #111827; 
+            margin-bottom: 1.5rem; 
+            padding-bottom: 0.75rem; 
+            border-bottom: 1px solid #d1d5db; 
         }
         #dayViewEventsList {
             max-height: 65vh; 
@@ -234,26 +230,26 @@
             padding-right: 0.5rem; 
         }
         .day-view-item {
-            background-color: #f9fafb; /* Gray-50 */
-            border: 1px solid #e5e7eb; /* Gray-200 */
-            border-radius: 8px; /* rounded-lg */
-            padding: 1rem; /* p-4 */
-            margin-bottom: 1rem; /* mb-4 */
+            background-color: #f9fafb; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            padding: 1rem; 
+            margin-bottom: 1rem; 
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
         .day-view-item .item-details { flex-grow: 1; margin-right: 1rem; }
-        .day-view-item .item-description { font-size: 0.95rem; color: #1f2937; /* Gray-800 */ }
+        .day-view-item .item-description { font-size: 0.95rem; color: #1f2937; }
         .day-view-item .item-description p { margin: 0.25rem 0; }
-        .day-view-item .item-time { font-size: 0.85rem; color: #047857; /* Emerald-700 */ font-weight: 500; margin-bottom: 0.25rem; }
-        .day-view-item .item-location { font-size: 0.85rem; color: #4338ca; /* Indigo-700 */ margin-top: 0.25rem; }
-        .day-view-item .item-tags { font-size: 0.8rem; color: #0284c7; /* Sky-600 */ margin-top: 0.25rem; }
+        .day-view-item .item-time { font-size: 0.85rem; color: #047857; font-weight: 500; margin-bottom: 0.25rem; }
+        .day-view-item .item-location { font-size: 0.85rem; color: #4338ca; margin-top: 0.25rem; }
+        .day-view-item .item-tags { font-size: 0.8rem; color: #0284c7; margin-top: 0.25rem; }
         .day-view-item .item-tags .tag { background-color: #e0f2fe; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block;}
         .day-view-item .item-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
         .day-view-item .item-actions button {
-            padding: 0.375rem 0.75rem; font-size: 0.8rem; border-radius: 6px; /* rounded-md */
+            padding: 0.375rem 0.75rem; font-size: 0.8rem; border-radius: 6px; 
             transition: background-color 0.2s;
         }
         .day-view-item .edit-btn { background-color: #3b82f6; color: white; } 
@@ -262,22 +258,22 @@
         .day-view-item .delete-btn:hover { background-color: #dc2626; }
         .day-view-no-items {
             text-align: center;
-            padding: 2.5rem; /* p-10 */
+            padding: 2.5rem; 
             font-size: 1rem;
-            color: #6b7280; /* Gray-500 */
+            color: #6b7280; 
         }
         .day-view-controls {
-            margin-top: 1.5rem; /* mt-6 */
+            margin-top: 1.5rem; 
             display: flex;
             justify-content: space-between; 
             align-items: center;
             gap: 0.75rem; 
         }
-        .day-view-controls button { /* Base style for day view control buttons */
-            padding: 0.5rem 1rem; /* py-2 px-4 */
-            font-size: 0.875rem; /* text-sm */
+        .day-view-controls button { 
+            padding: 0.5rem 1rem; 
+            font-size: 0.875rem; 
             font-weight: 500;
-            border-radius: 0.375rem; /* rounded-md */
+            border-radius: 0.375rem; 
             transition: background-color 0.2s;
             display: inline-flex;
             align-items: center;
@@ -287,76 +283,72 @@
             gap: 0.75rem;
         }
 
-        /* Calendar Header specific styles */
         .calendar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem; /* mb-6 */
+            margin-bottom: 1.5rem; 
         }
         .calendar-header-left {
             display: flex;
             align-items: center;
-            gap: 0.75rem; /* space-x-3 */
+            gap: 0.75rem; 
         }
         .calendar-header-left .user-avatar {
             width: 36px; height: 36px;
-            background-color: #93c5fd; /* blue-300 for placeholder */
+            background-color: #93c5fd; 
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1e3a8a; /* blue-800 */
+            color: #1e3a8a; 
         }
          .calendar-header-left .user-avatar i { font-size: 1rem; }
 
-        #monthYearDisplayNav { /* For the new month/year display in header */
-            font-size: 1.5rem; /* text-2xl */
-            font-weight: 600; /* font-semibold */
-            color: #1f2937; /* gray-800 */
-            cursor: pointer; /* To indicate it's clickable for month/year picker (future) */
+        #monthYearDisplayNav { 
+            font-size: 1.5rem; 
+            font-weight: 600; 
+            color: #1f2937; 
+            cursor: pointer; 
         }
          #monthYearDisplayNav:hover { color: #0056b3; }
 
         .calendar-header-right {
             display: flex;
             align-items: center;
-            gap: 1rem; /* space-x-4 */
+            gap: 1rem; 
         }
         .calendar-header-right button {
             background-color: transparent;
             border: none;
-            color: #4b5563; /* gray-600 */
-            font-size: 1.25rem; /* text-xl */
+            color: #4b5563; 
+            font-size: 1.25rem; 
             padding: 0.5rem;
             border-radius: 50%;
             transition: background-color 0.2s, color 0.2s;
         }
         .calendar-header-right button:hover {
-            background-color: #f3f4f6; /* gray-100 */
-            color: #1f2937; /* gray-800 */
+            background-color: #f3f4f6; 
+            color: #1f2937; 
         }
         .calendar-grid-header {
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 1px; /* Minimal gap */
+            gap: 1px; 
             text-align: center;
-            font-size: 0.75rem; /* text-xs */
-            font-weight: 500; /* font-medium */
-            color: #6b7280; /* gray-500 */
-            padding-bottom: 0.5rem; /* pb-2 */
-            border-bottom: 1px solid #e5e7eb; /* gray-200 */
-            margin-bottom: 0.5rem; /* mb-2 */
+            font-size: 0.75rem; 
+            font-weight: 500; 
+            color: #6b7280; 
+            padding-bottom: 0.5rem; 
+            border-bottom: 1px solid #e5e7eb; 
+            margin-bottom: 0.5rem; 
         }
-        /* Specific background for non-current month days */
         .blank-day-cell {
-            background-color: #f3f4f6; /* Tailwind gray-100 */
+            background-color: #f3f4f6; 
         }
         .current-month-day-cell {
-            background-color: #ffffff; /* White */
+            background-color: #ffffff; 
         }
-
-
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -370,9 +362,7 @@
     </div>
 
     <main class="container mx-auto p-4 md:p-6">
-        <!-- Calendar View Area -->
         <section id="calendarViewSection" class="bg-white p-4 sm:p-6 shadow-lg rounded-xl" aria-labelledby="calendar-section-title">
-            <!-- New Calendar Header -->
             <div class="calendar-header">
                 <div class="calendar-header-left">
                     <div class="user-avatar" title="使用者設定 (未來功能)">
@@ -411,10 +401,8 @@
             </div>
             
             <div id="calendarGridHeader" class="calendar-grid-header">
-                <!-- Day names will be populated by JS -->
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-md overflow-hidden" aria-labelledby="monthYearDisplay">
-                <!-- Calendar days will be populated here -->
             </div>
 
             <div id="itineraryControls" class="mt-6">
@@ -431,11 +419,9 @@
             </div>
         </section>
 
-        <!-- Day View Area -->
         <section id="dayViewContainer" class="hidden" aria-labelledby="dayViewDateTitle">
             <h2 id="dayViewDateTitle" class="text-2xl font-bold text-sky-800 mb-4"></h2>
             <div id="dayViewEventsList" class="space-y-3 mb-6">
-                <!-- Day's events will be populated here by JavaScript -->
             </div>
             <div class="day-view-controls">
                 <div class="control-group-left">
@@ -453,7 +439,6 @@
         </section>
     </main>
 
-    <!-- Management Modal -->
     <div id="managementModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="managementModalTitle">
         <div class="modal-content">
             <div class="modal-header">
@@ -490,7 +475,6 @@
         </div>
     </div>
 
-    <!-- Itinerary Item Modal (Add/Edit Event) -->
     <div id="itineraryItemModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="itineraryItemModalTitle">
         <div class="modal-content">
             <div class="modal-header">
@@ -543,7 +527,6 @@
         </div>
     </div>
 
-    <!-- Search Results Modal -->
     <div id="searchResultsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="searchResultsModalTitle">
          <div class="modal-content">
             <div class="modal-header">
@@ -551,11 +534,9 @@
                 <button id="closeSearchResultsModalButton" class="close-button" aria-label="關閉">&times;</button>
             </div>
             <div id="searchResultsList" class="max-h-[60vh] overflow-y-auto mt-4">
-                <!-- Search results will be populated here -->
             </div>
         </div>
     </div>
-
 
     <script>
     // AppState
@@ -605,7 +586,7 @@
             if (UIElements.customAlertBox) UIElements.customAlertBox.style.display = 'none';
         },
         getLocalStorageKey: (dataType, year = AppState.currentYear, month = AppState.currentMonth) => {
-            const version = "v3.31_ui_bgcolor"; // Updated version
+            const version = "v3.32_weekend_fix"; // Updated version
             if (dataType === 'holidays_all') {
                return `personalItinerary_${version}_holidays_all`;
             }
@@ -809,12 +790,15 @@
             dayNames.forEach(name => {
                 const dayHeaderCell = document.createElement('div');
                 dayHeaderCell.textContent = name;
+                if (name === '日' || name === '六') { // Add red color to weekend headers
+                    dayHeaderCell.classList.add('text-red-600');
+                }
                 UIElements.calendarGridHeader.appendChild(dayHeaderCell);
             });
 
             for (let i = 0; i < dayOfWeek; i++) { 
                 const blankCell = document.createElement('div');
-                blankCell.className = 'calendar-day blank-day-cell p-1.5'; // Added blank-day-cell for specific bg
+                blankCell.className = 'calendar-day blank-day-cell p-1.5';
                 UIElements.calendarGrid.appendChild(blankCell);
             }
             
@@ -824,7 +808,7 @@
                 const dayCell = document.createElement('div');
                 const dateStr = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
-                dayCell.className = 'calendar-day current-month-day-cell p-1.5'; // Added current-month-day-cell
+                dayCell.className = 'calendar-day current-month-day-cell p-1.5';
                 if (dateStr === todayDateString) {
                     dayCell.classList.add('today');
                 }
@@ -835,6 +819,25 @@
                 const dayNumber = document.createElement('span');
                 dayNumber.className = 'day-number-display';
                 dayNumber.textContent = day;
+
+                const currentDate = new Date(AppState.currentYear, AppState.currentMonth, day);
+                const currentDayOfWeek = currentDate.getDay();
+                const isWeekend = currentDayOfWeek === 0 || currentDayOfWeek === 6;
+                const holidayName = AppState.holidays[dateStr];
+
+                if (isWeekend || holidayName) {
+                    // Apply red text unless it's today's blue circle (which has !important white text)
+                    if (!(dateStr === todayDateString)) { // Avoid overriding today's white text
+                       dayNumber.classList.add('text-red-600', 'font-semibold');
+                    } else {
+                        // For today, if it's a weekend/holiday, the background is blue, text is white.
+                        // If you want today's number to ALSO be red if it's a weekend/holiday,
+                        // you'd need more specific CSS or remove !important from .today .day-number-display color.
+                        // For now, today's blue circle with white text takes precedence.
+                    }
+                }
+
+
                 dayNumberContainer.appendChild(dayNumber);
                 dayCell.appendChild(dayNumberContainer);
                 
@@ -864,9 +867,9 @@
                     }
                 }
                 
-                if (AppState.holidays[dateStr]) {
+                if (holidayName) {
                     const holidaySpan = document.createElement('div');
-                    holidaySpan.textContent = AppState.holidays[dateStr]; 
+                    holidaySpan.textContent = holidayName; 
                     holidaySpan.className = 'holiday-info text-orange-600 font-medium text-xs mt-auto text-center truncate px-1';
                     contentWrapper.appendChild(holidaySpan); 
                 }
@@ -885,7 +888,7 @@
             const remainingCells = (7 - (totalCells % 7)) % 7;
             for (let i = 0; i < remainingCells; i++) { 
                 const blankCell = document.createElement('div');
-                blankCell.className = 'calendar-day blank-day-cell p-1.5'; // Added blank-day-cell
+                blankCell.className = 'calendar-day blank-day-cell p-1.5';
                 UIElements.calendarGrid.appendChild(blankCell);
             }
         },
@@ -1372,7 +1375,6 @@
             if (!UIElements.searchResultsModal || !UIElements.searchResultsList) return;
             UIElements.searchResultsList.innerHTML = ''; 
             if (results.length === 0 && UIElements.searchInput && UIElements.searchInput.value.trim() === "") {
-                 // If opened via nav icon and no query yet
                  UIElements.searchResultsList.innerHTML = `
                     <div class="p-4 text-center">
                         <input type="search" id="modalSearchInput" placeholder="請在此輸入搜尋關鍵字..." class="form-input w-full mb-3">
@@ -1383,8 +1385,8 @@
                 if (modalSearchInput && modalSearchButton) {
                     modalSearchInput.addEventListener('keypress', (event) => {
                         if (event.key === 'Enter') {
-                            UIElements.searchInput.value = modalSearchInput.value; // Transfer to main search input
-                            Search.performSearch(); // Trigger search
+                            UIElements.searchInput.value = modalSearchInput.value; 
+                            Search.performSearch(); 
                         }
                     });
                     modalSearchButton.addEventListener('click', () => {
@@ -1708,13 +1710,12 @@
     // Search Functionality
     const Search = {
         performSearch: () => {
-            if (!UIElements.searchInput) return; // Should use modal's input if called from there
+            if (!UIElements.searchInput) return; 
             let query = UIElements.searchInput.value.trim().toLowerCase();
             const modalSearchInput = document.getElementById('modalSearchInput');
             if (UIElements.searchResultsModal.style.display === 'flex' && modalSearchInput && modalSearchInput.value.trim() !== '') {
                 query = modalSearchInput.value.trim().toLowerCase();
             }
-
 
             if (!query) { 
                 UI.openSearchResultsModal([]); 
@@ -1735,10 +1736,9 @@
                 }
             }
             results.sort((a,b) => a.date.localeCompare(b.date));
-            UI.openSearchResultsModal(results); // This will now populate based on results
+            UI.openSearchResultsModal(results); 
         }
     };
-
 
     // Initialization
     document.addEventListener('DOMContentLoaded', () => {
@@ -1748,8 +1748,8 @@
         UI.setActiveView('calendar'); 
 
         if (UIElements.searchButtonNav) UIElements.searchButtonNav.addEventListener('click', () => {
-            UIElements.searchInput.value = ''; // Clear main search input
-            Search.performSearch(); // Will open modal with input field
+            UIElements.searchInput.value = ''; 
+            Search.performSearch(); 
         });
         if (UIElements.todayButtonNav) UIElements.todayButtonNav.addEventListener('click', Calendar.goToToday);
         if (UIElements.openManagementModalButtonNav) UIElements.openManagementModalButtonNav.addEventListener('click', UI.openManagementModal);
@@ -1790,20 +1790,10 @@
                 }
             });
         }
-
-        // if (UIElements.searchButton) UIElements.searchButton.addEventListener('click', Search.performSearch); // Old search button
-        // if (UIElements.searchInput) { // Main search input, if still used directly
-        //     UIElements.searchInput.addEventListener('keypress', (event) => {
-        //         if (event.key === 'Enter') {
-        //             Search.performSearch();
-        //         }
-        //     });
-        // }
         if (UIElements.closeSearchResultsModalButton) UIElements.closeSearchResultsModalButton.addEventListener('click', UI.closeSearchResultsModal);
 
         if (UIElements.backToCalendarViewButton) UIElements.backToCalendarViewButton.addEventListener('click', DayView.closeDayView);
         if (UIElements.resetDayButton) UIElements.resetDayButton.addEventListener('click', DayView.clearDay); 
-
 
         window.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
