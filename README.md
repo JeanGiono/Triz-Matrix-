@@ -1,0 +1,1 @@
+Copyright © Jean Giono
