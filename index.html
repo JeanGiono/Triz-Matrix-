@@ -27,7 +27,7 @@
         }
         .calendar-day.today .day-number-display {
             background-color: #007bff;
-            color: white !important; /* Ensure white text for today's highlight */
+            color: white !important; 
             border-radius: 50%;
             width: 28px; 
             height: 28px; 
@@ -42,18 +42,17 @@
             align-self: flex-start;
         }
 
-        .itinerary-item-display {
+        .itinerary-item-display { /* Calendar cell item summary */
             font-size: 0.7rem;
-            padding: 2px 4px;
+            padding: 3px 5px; /* Slightly more padding */
             margin-top: 3px;
-            background-color: #e0e7ff; 
-            color: #3730a3; 
             border-radius: 4px;
             text-align: left;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             max-width: 95%;
+            /* Background color will be set by JS based on item.color */
         }
         .itinerary-item-display p { margin: 0; }
 
@@ -109,10 +108,10 @@
         }
         .close-button:hover { color: #1f2937; }
 
-        .modal-content::-webkit-scrollbar, #itineraryItemsList::-webkit-scrollbar, #dayTooltipContent::-webkit-scrollbar, #searchResultsList::-webkit-scrollbar, #dayViewEventsList::-webkit-scrollbar { width: 6px; }
-        .modal-content::-webkit-scrollbar-track, #itineraryItemsList::-webkit-scrollbar-track, #dayTooltipContent::-webkit-scrollbar-track, #searchResultsList::-webkit-scrollbar-track, #dayViewEventsList::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .modal-content::-webkit-scrollbar-thumb, #itineraryItemsList::-webkit-scrollbar-thumb, #dayTooltipContent::-webkit-scrollbar-thumb, #searchResultsList::-webkit-scrollbar-thumb, #dayViewEventsList::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .modal-content::-webkit-scrollbar-thumb:hover, #itineraryItemsList::-webkit-scrollbar-thumb:hover, #dayTooltipContent::-webkit-scrollbar-thumb:hover, #searchResultsList::-webkit-scrollbar-thumb:hover, #dayViewEventsList::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-content::-webkit-scrollbar, #itineraryItemsList::-webkit-scrollbar, #dayTooltipContent::-webkit-scrollbar, #searchResultsList::-webkit-scrollbar, #dayViewEventsList::-webkit-scrollbar, #featureGuideModalContent::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-track, #itineraryItemsList::-webkit-scrollbar-track, #dayTooltipContent::-webkit-scrollbar-track, #searchResultsList::-webkit-scrollbar-track, #dayViewEventsList::-webkit-scrollbar-track, #featureGuideModalContent::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb, #itineraryItemsList::-webkit-scrollbar-thumb, #dayTooltipContent::-webkit-scrollbar-thumb, #searchResultsList::-webkit-scrollbar-thumb, #dayViewEventsList::-webkit-scrollbar-thumb, #featureGuideModalContent::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb:hover, #itineraryItemsList::-webkit-scrollbar-thumb:hover, #dayTooltipContent::-webkit-scrollbar-thumb:hover, #searchResultsList::-webkit-scrollbar-thumb:hover, #dayViewEventsList::-webkit-scrollbar-thumb:hover, #featureGuideModalContent::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         .custom-alert {
             display: none; position: fixed; top: 20px; left: 50%;
@@ -133,12 +132,14 @@
         #managementModal .modal-title { color: #0369a1; }
         
         #itineraryItemModal .modal-content { max-width: 480px; }
-        .itinerary-modal-item { 
-            display: flex; justify-content: space-between; align-items: flex-start; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background-color: #f8fafc; cursor: grab;
+        .itinerary-modal-item { /* List of items inside add/edit modal */
+            display: flex; justify-content: space-between; align-items: flex-start; padding: 10px; 
+            border-radius: 8px; margin-bottom: 8px; background-color: #f8fafc; cursor: grab;
+            border-left-width: 4px; /* For color indicator */
         }
         .itinerary-modal-item.dragging { opacity: 0.6; background-color: #dbeafe; }
         .drag-over { border-top: 2px dashed #60a5fa; }
-        .itinerary-modal-item .item-details { flex-grow: 1; margin-right: 10px; }
+        .itinerary-modal-item .item-details { flex-grow: 1; margin-right: 10px; padding-left: 8px; }
         .itinerary-modal-item .item-description { word-break: break-word; font-weight: 500; color: #334155; }
         .itinerary-modal-item .item-description p:first-child { margin-top: 0; }
         .itinerary-modal-item .item-description p:last-child { margin-bottom: 0; }
@@ -200,6 +201,10 @@
         .tooltip-item .item-location-tooltip { font-size: 0.75rem; color: #15803d; margin-top: 2px; }
         .tooltip-item .item-tags-tooltip { font-size: 0.7rem; color: #1d4ed8; margin-top: 2px; }
         .tooltip-item .item-tags-tooltip .tag { background-color: #e0e7ff; padding: 2px 5px; border-radius: 4px; margin-right: 4px; display: inline-block;}
+        .tooltip-item .item-color-indicator {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px;
+            vertical-align: middle;
+        }
         .tooltip-no-items { font-size: 0.8rem; color: #64748b; }
         
         #searchResultsModal .modal-content { max-width: 700px; }
@@ -229,9 +234,8 @@
             overflow-y: auto;
             padding-right: 0.5rem; 
         }
-        .day-view-item {
+        .day-view-item { /* Day view list item */
             background-color: #f9fafb; 
-            border: 1px solid #e5e7eb; 
             border-radius: 8px; 
             padding: 1rem; 
             margin-bottom: 1rem; 
@@ -239,8 +243,10 @@
             justify-content: space-between;
             align-items: flex-start;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            border-left-width: 5px; /* For color indicator */
+            /* Border color will be set by JS */
         }
-        .day-view-item .item-details { flex-grow: 1; margin-right: 1rem; }
+        .day-view-item .item-details { flex-grow: 1; margin-right: 1rem; padding-left: 0.75rem; }
         .day-view-item .item-description { font-size: 0.95rem; color: #1f2937; }
         .day-view-item .item-description p { margin: 0.25rem 0; }
         .day-view-item .item-time { font-size: 0.85rem; color: #047857; font-weight: 500; margin-bottom: 0.25rem; }
@@ -302,7 +308,11 @@
             align-items: center;
             justify-content: center;
             color: #1e3a8a; 
+            cursor: pointer; 
         }
+         .calendar-header-left .user-avatar:hover {
+            background-color: #60a5fa; 
+         }
          .calendar-header-left .user-avatar i { font-size: 1rem; }
 
         #monthYearDisplayNav { 
@@ -349,6 +359,47 @@
         .current-month-day-cell {
             background-color: #ffffff; 
         }
+        #featureGuideModalContent ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            space-y: 0.5rem; 
+        }
+        #featureGuideModalContent li {
+            font-size: 0.9rem;
+            color: #374151; 
+        }
+        #featureGuideModalContent li strong {
+            color: #111827; 
+            font-weight: 600;
+        }
+        /* Color Picker Styles */
+        .color-swatch {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s, border-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .color-swatch.selected {
+            border-color: #3b82f6; /* Blue-500 for selected state */
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #3b82f6;
+        }
+        .color-swatch.selected i {
+            display: block; /* Show checkmark */
+        }
+        .color-swatch i { /* Checkmark icon */
+             display: none;
+             color: rgba(0,0,0,0.6); /* Darker check for better visibility on light colors */
+             font-size: 0.8rem;
+        }
+
+
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -365,7 +416,7 @@
         <section id="calendarViewSection" class="bg-white p-4 sm:p-6 shadow-lg rounded-xl" aria-labelledby="calendar-section-title">
             <div class="calendar-header">
                 <div class="calendar-header-left">
-                    <div class="user-avatar" title="使用者設定 (未來功能)">
+                    <div id="userAvatarButton" class="user-avatar" title="功能說明">
                         <i class="fas fa-user"></i>
                     </div>
                     <h2 id="monthYearDisplayNav" class="text-xl font-semibold text-gray-800" aria-live="polite" title="選擇月份 (未來功能)"></h2>
@@ -494,6 +545,13 @@
                     <textarea id="newItineraryItemText" rows="3" class="form-input" placeholder="輸入行程描述..."></textarea>
                 </div>
                 
+                <div>
+                    <label class="form-label">顏色標籤:</label>
+                    <div id="itineraryItemColorPicker" class="flex flex-wrap gap-2 mt-1 mb-3">
+                        <!-- Color swatches will be populated here by JS -->
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between">
                      <label for="timeSettingToggle" class="form-label mb-0">時間設定</label>
                      <button type="button" id="timeSettingToggle" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 bg-gray-200" role="switch" aria-checked="false">
@@ -538,7 +596,66 @@
         </div>
     </div>
 
+    <div id="featureGuideModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="featureGuideModalTitle">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="featureGuideModalTitle" class="modal-title">功能推薦說明</h3>
+                <button id="closeFeatureGuideModalButton" class="close-button" aria-label="關閉">&times;</button>
+            </div>
+            <div id="featureGuideModalContent" class="mt-4 space-y-3 text-sm text-slate-700">
+                <p>歡迎使用個人行程表！以下是一些主要功能介紹：</p>
+                <ul>
+                    <li><strong>月曆檢視:</strong> 清晰呈現當月每日的行程概要。點擊日期可進入「日檢視」。週末及假日會以紅色標示。</li>
+                    <li><strong>日檢視:</strong> 詳細列出選定日期的所有行程，可新增、編輯、刪除單日行程，或重置當日所有資料。</li>
+                    <li><strong>行程管理:</strong>
+                        <ul>
+                            <li>點擊日期進入「日檢視」後，可點擊「<i class="fas fa-plus"></i> 新增本日行程」來建立新項目。</li>
+                            <li>行程項目支援 Markdown 格式描述、開始/結束時間、標籤、地點及<span class="font-semibold text-sky-600">顏色標籤</span>。</li>
+                            <li>在「編輯行程項目」彈窗中，您可以拖曳調整同一天內行程的順序。</li>
+                        </ul>
+                    </li>
+                    <li><strong>導覽列按鈕:</strong>
+                        <ul>
+                            <li><i class="fas fa-search"></i>: 搜尋行程內容、標籤或地點。</li>
+                            <li><i class="fas fa-calendar-day"></i>: 快速跳回包含「今天」的月份。</li>
+                            <li><i class="fas fa-cog"></i>: 開啟設定面板。</li>
+                        </ul>
+                    </li>
+                     <li><strong>設定面板 (<i class="fas fa-cog"></i>):</strong>
+                        <ul>
+                            <li><strong>貼上匯入:</strong> 可快速貼上純文字格式的行程進行匯入。</li>
+                            <li><strong>假期匯入:</strong> 支援匯入 .ics 格式的假期檔案。</li>
+                            <li><strong>儲存/清除:</strong> 手動儲存當前所有行程與備註，或清除「當月」所有行程與備註。</li>
+                        </ul>
+                    </li>
+                    <li><strong>行程表備註:</strong> 可為每個月記錄特別的備註事項。</li>
+                    <li><strong>匯出功能:</strong> 可將當月行程匯出為 .ics 檔案，方便匯入其他日曆應用。</li>
+                    <li><strong>資料儲存:</strong> 所有行程資料皆儲存在您的瀏覽器本機儲存空間，確保隱私。</li>
+                </ul>
+                <p class="mt-4 text-xs text-center">持續探索，讓行程管理更有效率！</p>
+            </div>
+        </div>
+    </div>
+
+
     <script>
+    // --- Color Palette ---
+    // Storing Tailwind classes for easier application and a display name
+    const COLOR_CLASSES = {
+        default: { bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-400', name: '預設灰', hex: '#e2e8f0' },
+        red:     { bg: 'bg-red-200',   text: 'text-red-800',   border: 'border-red-500',   name: '熱情紅', hex: '#fecaca' },
+        orange:  { bg: 'bg-orange-200',text: 'text-orange-800',border: 'border-orange-500',name: '活力橙', hex: '#fed7aa' },
+        yellow:  { bg: 'bg-yellow-100',text: 'text-yellow-800',border: 'border-yellow-400',name: '明亮黃', hex: '#fef9c3' }, // Adjusted yellow for better visibility
+        green:   { bg: 'bg-green-200', text: 'text-green-800', border: 'border-green-500', name: '清新綠', hex: '#bbf7d0' },
+        teal:    { bg: 'bg-teal-100',  text: 'text-teal-800',  border: 'border-teal-400',  name: '湖水青', hex: '#ccfbf1' }, // Adjusted teal
+        blue:    { bg: 'bg-blue-200',  text: 'text-blue-800',  border: 'border-blue-500',  name: '天空藍', hex: '#bfdbfe' },
+        indigo:  { bg: 'bg-indigo-200',text: 'text-indigo-800',border: 'border-indigo-500',name: '沉穩靛', hex: '#c7d2fe' },
+        purple:  { bg: 'bg-purple-200',text: 'text-purple-800',border: 'border-purple-500',name: '夢幻紫', hex: '#e9d5ff' },
+        pink:    { bg: 'bg-pink-200',  text: 'text-pink-800',  border: 'border-pink-500',  name: '溫柔粉', hex: '#fbcfe8' }
+    };
+    const DEFAULT_COLOR_KEY = 'default';
+
+
     // AppState
     let AppState = {
         currentYear: new Date().getFullYear(), currentMonth: new Date().getMonth(),
@@ -546,28 +663,32 @@
         editingItemId: null, draggedItemId: null, tooltipTimeout: null,
         currentView: 'calendar', 
         selectedDayForDayView: null,
-        isTimeSettingEnabled: false 
+        isTimeSettingEnabled: false,
+        selectedItemColorKey: DEFAULT_COLOR_KEY // For color picker in modal
     };
 
     // UIElements
     const UIElements = {
         mainTitle: null, monthYearDisplay: null, calendarGrid: null, calendarGridHeader: null,
         monthYearDisplayNav: null, searchButtonNav: null, openManagementModalButtonNav: null, todayButtonNav: null,
+        userAvatarButton: null, 
         fullSchedulePasteArea: null, 
         itineraryItemModal: null, itineraryItemsList: null, newItineraryItemText: null, 
+        itineraryItemColorPicker: null, // Added for color picker
         itineraryStartTime: null, itineraryEndTime: null, itineraryItemTags: null, itineraryItemLocation: null,
         addOrUpdateItineraryItemButton: null, closeItineraryItemModalButton: null,
         timeSettingToggle: null, timeSettingToggleKnob: null, timeInputsContainer: null,
         scheduleNotesTextarea: null, customAlertBox: null, customAlertMessageBox: null, saveNotesButton: null,
         itineraryControls: null, exportItineraryButton: null,
         saveItineraryButton: null, clearItineraryButton: null,
-        managementModal: null, openManagementModalButton: null, closeManagementModalButton: null,
+        managementModal: null, closeManagementModalButton: null,
         itineraryManagementContent: null,
         dayTooltip: null, dayTooltipContent: null,
         searchInput: null, searchButton: null, searchBarContainer: null, monthControls: null,
         searchResultsModal: null, searchResultsList: null, closeSearchResultsModalButton: null,
         calendarViewSection: null, dayViewContainer: null, dayViewDateTitle: null, dayViewEventsList: null,
-        addNewItemInDayViewButton: null, backToCalendarViewButton: null, resetDayButton: null
+        addNewItemInDayViewButton: null, backToCalendarViewButton: null, resetDayButton: null,
+        featureGuideModal: null, closeFeatureGuideModalButton: null, featureGuideModalContent: null
     };
 
     // Utils
@@ -586,7 +707,7 @@
             if (UIElements.customAlertBox) UIElements.customAlertBox.style.display = 'none';
         },
         getLocalStorageKey: (dataType, year = AppState.currentYear, month = AppState.currentMonth) => {
-            const version = "v3.32_weekend_fix"; // Updated version
+            const version = "v3.34_color_tags"; // Updated version
             if (dataType === 'holidays_all') {
                return `personalItinerary_${version}_holidays_all`;
             }
@@ -623,13 +744,14 @@
                             startTime: item.startTime || "", 
                             endTime: item.endTime || "",
                             tags: Array.isArray(item.tags) ? item.tags : [],
-                            location: item.location || "" 
+                            location: item.location || "",
+                            color: item.color || DEFAULT_COLOR_KEY // Load color, default if not present
                         }));
                     } else { 
                         AppState.shifts[dateKey] = [{ 
                             id: Utils.generateUUID(), 
                             description: String(parsedShifts[dateKey]),
-                            startTime: "", endTime: "", tags: [], location: ""
+                            startTime: "", endTime: "", tags: [], location: "", color: DEFAULT_COLOR_KEY
                         }];
                     }
                 }
@@ -642,6 +764,16 @@
         },
         saveDataForCurrentMonth: () => { 
             try {
+                // Ensure all items have a color property before saving
+                for (const dateKey in AppState.shifts) {
+                    if (AppState.shifts[dateKey] && Array.isArray(AppState.shifts[dateKey])) {
+                        AppState.shifts[dateKey].forEach(item => {
+                            if (!item.color) {
+                                item.color = DEFAULT_COLOR_KEY;
+                            }
+                        });
+                    }
+                }
                 localStorage.setItem(Utils.getLocalStorageKey('shifts'), JSON.stringify(AppState.shifts));
                 localStorage.setItem(Utils.getLocalStorageKey('notes'), AppState.notes);
                 localStorage.setItem(Utils.getLocalStorageKey('holidays_all'), JSON.stringify(AppState.holidays));
@@ -790,7 +922,7 @@
             dayNames.forEach(name => {
                 const dayHeaderCell = document.createElement('div');
                 dayHeaderCell.textContent = name;
-                if (name === '日' || name === '六') { // Add red color to weekend headers
+                if (name === '日' || name === '六') { 
                     dayHeaderCell.classList.add('text-red-600');
                 }
                 UIElements.calendarGridHeader.appendChild(dayHeaderCell);
@@ -826,17 +958,10 @@
                 const holidayName = AppState.holidays[dateStr];
 
                 if (isWeekend || holidayName) {
-                    // Apply red text unless it's today's blue circle (which has !important white text)
-                    if (!(dateStr === todayDateString)) { // Avoid overriding today's white text
+                    if (!(dateStr === todayDateString && dayCell.classList.contains('today'))) { 
                        dayNumber.classList.add('text-red-600', 'font-semibold');
-                    } else {
-                        // For today, if it's a weekend/holiday, the background is blue, text is white.
-                        // If you want today's number to ALSO be red if it's a weekend/holiday,
-                        // you'd need more specific CSS or remove !important from .today .day-number-display color.
-                        // For now, today's blue circle with white text takes precedence.
                     }
                 }
-
 
                 dayNumberContainer.appendChild(dayNumber);
                 dayCell.appendChild(dayNumberContainer);
@@ -850,6 +975,13 @@
                     itineraryItemsForDay.slice(0, 2).forEach(item => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'itinerary-item-display';
+                        
+                        // Apply color
+                        const colorKey = item.color || DEFAULT_COLOR_KEY;
+                        const colorInfo = COLOR_CLASSES[colorKey] || COLOR_CLASSES[DEFAULT_COLOR_KEY];
+                        itemDiv.classList.add(colorInfo.bg); // Use Tailwind bg class
+                        itemDiv.classList.add(colorInfo.text); // Use Tailwind text class for contrast
+                        
                         let displayText = item.startTime ? `${item.startTime} ` : "";
                         try {
                             displayText += (typeof marked !== 'undefined' && marked.parse) ? marked.parse(item.description || "").trim().replace(/<p>|<\/p>/g, "") : (item.description || "").trim();
@@ -958,7 +1090,10 @@
                     if (!isNaN(day) && day >= 1 && day <= 31 && !isNaN(month) && month >=0 && month <=11) {
                         const dateStr = `${yearToUse}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         if (!tempShifts[dateStr]) tempShifts[dateStr] = [];
-                        tempShifts[dateStr].push({ id: Utils.generateUUID(), description: description, startTime: "", endTime: "", tags: [], location: "" });
+                        tempShifts[dateStr].push({ 
+                            id: Utils.generateUUID(), description: description, 
+                            startTime: "", endTime: "", tags: [], location: "", color: DEFAULT_COLOR_KEY 
+                        });
                     } else { 
                         if (!tempNotesFromParser) tempNotesFromParser = line; else tempNotesFromParser += "\n" + line;
                     }
@@ -1024,12 +1159,14 @@
             UIElements.searchButtonNav = document.getElementById('searchButtonNav');
             UIElements.openManagementModalButtonNav = document.getElementById('openManagementModalButtonNav');
             UIElements.todayButtonNav = document.getElementById('todayButtonNav');
+            UIElements.userAvatarButton = document.getElementById('userAvatarButton');
 
             UIElements.fullSchedulePasteArea = document.getElementById('fullSchedulePasteArea');
             
             UIElements.itineraryItemModal = document.getElementById('itineraryItemModal');
             UIElements.itineraryItemsList = document.getElementById('itineraryItemsList');
             UIElements.newItineraryItemText = document.getElementById('newItineraryItemText');
+            UIElements.itineraryItemColorPicker = document.getElementById('itineraryItemColorPicker');
             UIElements.itineraryStartTime = document.getElementById('itineraryStartTime');
             UIElements.itineraryEndTime = document.getElementById('itineraryEndTime');
             UIElements.itineraryItemTags = document.getElementById('itineraryItemTags');
@@ -1074,6 +1211,10 @@
             UIElements.addNewItemInDayViewButton = document.getElementById('addNewItemInDayViewButton');
             UIElements.backToCalendarViewButton = document.getElementById('backToCalendarViewButton');
             UIElements.resetDayButton = document.getElementById('resetDayButton');
+
+            UIElements.featureGuideModal = document.getElementById('featureGuideModal');
+            UIElements.closeFeatureGuideModalButton = document.getElementById('closeFeatureGuideModalButton');
+            UIElements.featureGuideModalContent = document.getElementById('featureGuideModalContent');
         },
         setActiveView: (view) => { 
             AppState.currentView = view;
@@ -1085,6 +1226,36 @@
                 if (UIElements.calendarViewSection) UIElements.calendarViewSection.classList.add('hidden');
                 if (UIElements.dayViewContainer) UIElements.dayViewContainer.classList.remove('hidden');
             }
+        },
+        populateColorPicker: (selectedColorKey) => {
+            if (!UIElements.itineraryItemColorPicker) return;
+            UIElements.itineraryItemColorPicker.innerHTML = ''; // Clear previous swatches
+
+            Object.keys(COLOR_CLASSES).forEach(key => {
+                const colorInfo = COLOR_CLASSES[key];
+                const swatch = document.createElement('button');
+                swatch.type = 'button'; // Important for forms
+                swatch.className = `color-swatch ${colorInfo.bg}`;
+                swatch.dataset.colorKey = key;
+                swatch.title = colorInfo.name;
+                
+                const checkIcon = document.createElement('i');
+                checkIcon.className = 'fas fa-check text-xs'; // Font Awesome check icon
+                swatch.appendChild(checkIcon);
+
+                if (key === selectedColorKey) {
+                    swatch.classList.add('selected');
+                }
+                swatch.addEventListener('click', () => {
+                    AppState.selectedItemColorKey = key;
+                    // Update selected state on all swatches
+                    UIElements.itineraryItemColorPicker.querySelectorAll('.color-swatch').forEach(s => {
+                        s.classList.remove('selected');
+                    });
+                    swatch.classList.add('selected');
+                });
+                UIElements.itineraryItemColorPicker.appendChild(swatch);
+            });
         },
         toggleTimeSetting: (forceState) => {
             AppState.isTimeSettingEnabled = typeof forceState === 'boolean' ? forceState : !AppState.isTimeSettingEnabled;
@@ -1107,9 +1278,10 @@
             }
         },
         openItineraryItemModal: (dateStr, itemIdToEdit = null) => { 
-            if (!UIElements.itineraryItemModal || !UIElements.itineraryItemsList || !UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
+            if (!UIElements.itineraryItemModal) return;
             
             AppState.selectedDateForAssignment = dateStr; 
+            AppState.selectedItemColorKey = DEFAULT_COLOR_KEY; // Reset to default for new item
             UIElements.itineraryItemsList.dataset.date = dateStr; 
             
             const modalTitleEl = UIElements.itineraryItemModal.querySelector('#itineraryItemModalTitle');
@@ -1134,9 +1306,11 @@
                     UI.prepareEditItineraryItem(dateStr, item); 
                     if (modalTitleEl) modalTitleEl.textContent = `編輯於 ${formattedDate}`;
                     hasTime = !!item.startTime || !!item.endTime;
+                    AppState.selectedItemColorKey = item.color || DEFAULT_COLOR_KEY; // Set selected color
                 }
             }
             
+            UI.populateColorPicker(AppState.selectedItemColorKey); // Populate and set selected
             UI.toggleTimeSetting(hasTime); 
             UI.renderItineraryItemsInModal(dateStr); 
             
@@ -1149,27 +1323,23 @@
                 DayView.renderDayViewItems(AppState.selectedDayForDayView);
             }
         },
-        renderItineraryItemsInModal: (dateStr) => { 
+        renderItineraryItemsInModal: (dateStr) => { // List of OTHER items in the modal
             if (!UIElements.itineraryItemsList) return;
             UIElements.itineraryItemsList.innerHTML = ''; 
             const items = [...(AppState.shifts[dateStr] || [])].sort((a,b) => (a.startTime || "23:59").localeCompare(b.startTime || "23:59"));
 
-            if (items.length <= 1 && AppState.editingItemId) { 
-                UIElements.itineraryItemsList.classList.add('hidden');
-                return;
-            }
-            UIElements.itineraryItemsList.classList.remove('hidden');
-
-            if (items.length === 0) {
-                UIElements.itineraryItemsList.innerHTML = '<p class="text-sm text-slate-500 p-2">此日期尚無其他行程項目。</p>';
-                return;
-            }
-
+            let visibleItems = 0;
             items.forEach(item => {
-                if (item.id === AppState.editingItemId) return; 
+                if (item.id === AppState.editingItemId) return; // Don't show the item currently being edited
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'itinerary-modal-item'; 
+                
+                // Apply color border
+                const colorKey = item.color || DEFAULT_COLOR_KEY;
+                const colorInfo = COLOR_CLASSES[colorKey] || COLOR_CLASSES[DEFAULT_COLOR_KEY];
+                itemDiv.classList.add(colorInfo.border); // Assumes border color class like 'border-blue-500'
+
                 itemDiv.setAttribute('draggable', true); 
                 itemDiv.dataset.itemId = item.id; 
                 
@@ -1202,16 +1372,25 @@
                 buttonGroup.appendChild(editBtn);
                 itemDiv.appendChild(buttonGroup);
                 UIElements.itineraryItemsList.appendChild(itemDiv);
+                visibleItems++;
             });
-             if (UIElements.itineraryItemsList.children.length === 0) {
+
+            if (visibleItems === 0) {
+                UIElements.itineraryItemsList.innerHTML = '<p class="text-sm text-slate-500 p-2 text-center">此日期無其他行程。</p>';
+            }
+             
+            if (visibleItems === 0 || (items.length <= 1 && AppState.editingItemId)) {
                 UIElements.itineraryItemsList.classList.add('hidden');
+            } else {
+                UIElements.itineraryItemsList.classList.remove('hidden');
             }
         },
         prepareEditItineraryItem: (dateStr, itemToEdit) => { 
-            if (!UIElements.newItineraryItemText || !UIElements.addOrUpdateItineraryItemButton || !UIElements.itineraryStartTime || !UIElements.itineraryEndTime || !UIElements.itineraryItemTags || !UIElements.itineraryItemLocation) return;
+            if (!UIElements.newItineraryItemText) return;
             
             AppState.editingItemId = itemToEdit.id; 
             AppState.selectedDateForAssignment = dateStr; 
+            AppState.selectedItemColorKey = itemToEdit.color || DEFAULT_COLOR_KEY; // Set color for picker
             
             UIElements.newItineraryItemText.value = itemToEdit.description;
             UIElements.itineraryStartTime.value = itemToEdit.startTime || "";
@@ -1221,6 +1400,7 @@
             
             UIElements.addOrUpdateItineraryItemButton.innerHTML = '<i class="fas fa-save mr-2"></i>更新項目'; 
             UI.toggleTimeSetting(!!(itemToEdit.startTime || itemToEdit.endTime)); 
+            UI.populateColorPicker(AppState.selectedItemColorKey); // Refresh picker with current item's color
             UIElements.newItineraryItemText.focus(); 
         },
         addOrUpdateItineraryItem: () => { 
@@ -1232,6 +1412,7 @@
             const tagsString = UIElements.itineraryItemTags.value.trim();
             const tags = tagsString ? tagsString.split(/[,，\s]+/).map(tag => tag.trim()).filter(tag => tag) : [];
             const location = UIElements.itineraryItemLocation.value.trim();
+            const color = AppState.selectedItemColorKey || DEFAULT_COLOR_KEY; // Get selected color
 
             if (!description) { Utils.showCustomAlert("行程描述不可為空。", "info"); return; }
 
@@ -1254,10 +1435,14 @@
                     AppState.shifts[dateStr][itemIndex].endTime = endTime;
                     AppState.shifts[dateStr][itemIndex].tags = tags;
                     AppState.shifts[dateStr][itemIndex].location = location;
+                    AppState.shifts[dateStr][itemIndex].color = color; // Save color
                     Utils.showCustomAlert("行程項目已更新。", "success", 1500);
                 }
             } else { 
-                const newItem = { id: Utils.generateUUID(), description: description, startTime: startTime, endTime: endTime, tags: tags, location: location };
+                const newItem = { 
+                    id: Utils.generateUUID(), description: description, startTime: startTime, 
+                    endTime: endTime, tags: tags, location: location, color: color // Save color
+                };
                 AppState.shifts[dateStr].push(newItem);
                 Utils.showCustomAlert("行程項目已新增。", "success", 1500);
             }
@@ -1295,6 +1480,9 @@
         openManagementModal: () => { if (UIElements.managementModal) UIElements.managementModal.style.display = 'flex'; },
         closeManagementModal: () => { if (UIElements.managementModal) UIElements.managementModal.style.display = 'none'; },
         
+        openFeatureGuideModal: () => { if (UIElements.featureGuideModal) UIElements.featureGuideModal.style.display = 'flex';},
+        closeFeatureGuideModal: () => { if (UIElements.featureGuideModal) UIElements.featureGuideModal.style.display = 'none';},
+
         showTooltip: (event, dateStr) => { 
             if (!UIElements.dayTooltip || !UIElements.dayTooltipContent) return;
             clearTimeout(AppState.tooltipTimeout); 
@@ -1316,6 +1504,13 @@
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'tooltip-item';
                     let itemHTML = ""; 
+
+                    // Add color indicator to tooltip
+                    const itemColorKey = item.color || DEFAULT_COLOR_KEY;
+                    const itemColorInfo = COLOR_CLASSES[itemColorKey] || COLOR_CLASSES[DEFAULT_COLOR_KEY];
+                    itemHTML += `<span class="item-color-indicator ${itemColorInfo.bg}"></span>`;
+
+
                     if (item.startTime) {
                         itemHTML += `<span class="item-time">${item.startTime}</span>`;
                         if (item.endTime) itemHTML += `<span class="item-time"> - ${item.endTime}</span>`;
@@ -1403,15 +1598,20 @@
                     const itemEl = document.createElement('div');
                     itemEl.className = 'search-result-item';
                     let content = `<div class="search-result-date">${result.date}</div>`;
+                    
+                    const itemColorKey = result.item.color || DEFAULT_COLOR_KEY;
+                    const itemColorInfo = COLOR_CLASSES[itemColorKey] || COLOR_CLASSES[DEFAULT_COLOR_KEY];
+                    content += `<span class="item-color-indicator ${itemColorInfo.bg} mr-2"></span>`;
+
                     if (result.item.startTime) {
                         content += `<span class="item-time">${result.item.startTime}</span>`;
                         if (result.item.endTime) content += `<span class="item-time"> - ${result.item.endTime}</span>`;
                         content += " ";
                     }
                     try {
-                        content += `<div class="search-result-description">${(typeof marked !== 'undefined' && marked.parse) ? marked.parse(result.item.description || "") : (result.item.description || "")}</div>`;
+                        content += `<div class="search-result-description inline">${(typeof marked !== 'undefined' && marked.parse) ? marked.parse(result.item.description || "") : (result.item.description || "")}</div>`;
                     } catch (e) {
-                        content += `<div class="search-result-description">${result.item.description || ""}</div>`;
+                        content += `<div class="search-result-description inline">${result.item.description || ""}</div>`;
                     }
                     if (result.item.location) {
                         content += `<div class="item-location-tooltip text-sm"><i class="fas fa-map-marker-alt mr-1"></i>${result.item.location}</div>`;
@@ -1481,8 +1681,15 @@
 
             items.forEach(item => {
                 const itemDiv = document.createElement('div');
-                itemDiv.className = 'day-view-item';
+                itemDiv.className = 'day-view-item'; // Base class
                 itemDiv.dataset.itemId = item.id;
+
+                // Apply color border
+                const colorKey = item.color || DEFAULT_COLOR_KEY;
+                const colorInfo = COLOR_CLASSES[colorKey] || COLOR_CLASSES[DEFAULT_COLOR_KEY];
+                itemDiv.classList.add(colorInfo.border);
+
+
                 const detailsDiv = document.createElement('div');
                 detailsDiv.className = 'item-details';
                 if (item.startTime) {
@@ -1650,7 +1857,8 @@
                         eventsToExport.push({ 
                             date: dateStr, description: item.description, id: item.id, 
                             startTime: item.startTime, endTime: item.endTime,
-                            tags: item.tags, location: item.location
+                            tags: item.tags, location: item.location,
+                            color: item.color // Include color in export if needed by other apps
                         });
                     });
                 }
@@ -1685,6 +1893,9 @@
                 let eventDescription = eventData.description; 
                 if (eventData.location) { eventDescription += `\n地點: ${eventData.location}`; }
                 if (eventData.tags && eventData.tags.length > 0) { eventDescription += `\n標籤: ${eventData.tags.join(', ')}`;}
+                if (eventData.color && eventData.color !== DEFAULT_COLOR_KEY) {
+                    eventDescription += `\n顏色標籤: ${COLOR_CLASSES[eventData.color]?.name || eventData.color}`;
+                }
                 icsEvents.push('BEGIN:VEVENT');
                 icsEvents.push(`UID:itinerary-${eventData.date}-${eventData.id}@personaltool.local`); 
                 icsEvents.push(`DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').substring(0, 15)}Z`); 
@@ -1692,6 +1903,9 @@
                 icsEvents.push(`SUMMARY:${eventSummary.replace(/\n/g, "\\n")}`); 
                 icsEvents.push(`DESCRIPTION:${eventDescription.replace(/\n/g, "\\n")}`); 
                 if (eventData.location) { icsEvents.push(`LOCATION:${eventData.location.replace(/\n/g, "\\n")}`);}
+                // Standard .ics doesn't have a direct "COLOR" property in the way we use it,
+                // but some calendar apps might interpret X-APPLE-CALENDAR-COLOR or similar.
+                // For simplicity, we're adding it to the description.
                 icsEvents.push('END:VEVENT');
             });
             icsEvents.push('END:VCALENDAR');
@@ -1747,6 +1961,10 @@
         DataStorage.loadDataForCurrentMonth(); 
         UI.setActiveView('calendar'); 
 
+        if(UIElements.userAvatarButton) UIElements.userAvatarButton.addEventListener('click', UI.openFeatureGuideModal);
+        if(UIElements.closeFeatureGuideModalButton) UIElements.closeFeatureGuideModalButton.addEventListener('click', UI.closeFeatureGuideModal);
+
+
         if (UIElements.searchButtonNav) UIElements.searchButtonNav.addEventListener('click', () => {
             UIElements.searchInput.value = ''; 
             Search.performSearch(); 
@@ -1800,6 +2018,7 @@
                 if (UIElements.itineraryItemModal && UIElements.itineraryItemModal.style.display === 'flex') UI.closeItineraryItemModal();
                 if (UIElements.managementModal && UIElements.managementModal.style.display === 'flex') UI.closeManagementModal();
                 if (UIElements.searchResultsModal && UIElements.searchResultsModal.style.display === 'flex') UI.closeSearchResultsModal();
+                if (UIElements.featureGuideModal && UIElements.featureGuideModal.style.display === 'flex') UI.closeFeatureGuideModal();
                 UI.hideTooltip(0); 
             }
         });
@@ -1807,6 +2026,7 @@
             if (UIElements.itineraryItemModal && event.target == UIElements.itineraryItemModal) UI.closeItineraryItemModal();
             if (UIElements.managementModal && event.target == UIElements.managementModal) UI.closeManagementModal();
             if (UIElements.searchResultsModal && event.target == UIElements.searchResultsModal) UI.closeSearchResultsModal();
+            if (UIElements.featureGuideModal && event.target == UIElements.featureGuideModal) UI.closeFeatureGuideModal();
         }
         
         if(UIElements.calendarGrid) UIElements.calendarGrid.addEventListener('mouseleave', () => UI.hideTooltip());
